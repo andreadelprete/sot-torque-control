@@ -1,0 +1,3 @@
+// Copyright 2014
+// If you read this file you should have readen and been given a copy of the closed license concerning HRP2
+//

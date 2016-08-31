@@ -1,0 +1,18 @@
+from dynamic_graph.sot.torque_control.test_estimator import *
+<<<<<<< HEAD
+(estimator,controller,sin_ctrl) = main_pre_start(True,robot,0.001,0.03,jointId=2,amplitude=0.6,frequency=0.2)
+estimator.gyroscope.value = (0,0,0)
+controller.Kp.value = 30*(12.0,);
+ros = main_post_start(robot, estimator, controller, sin_ctrl)
+sin_ctrl.start()
+=======
+(estimator,torque_ctrl,pos_ctrl) = main_pre_start(False,robot,0.001,0.05,jointId=2,amplitude=0.6,frequency=0.2);
+
+ros = main_post_start(robot, estimator, torque_ctrl, pos_ctrl);
+pos_ctrl.moveJoint('rhp', 0.0, 5.0);
+pos_ctrl.startSinusoid('rhp', -0.5, 3.0);
+pos_ctrl.stop('rhp');
+
+robot.stopTracer();
+controller.Kp.value = 30*(0.0,);
+>>>>>>> Add joint-position-controller entity. Add trajectory generators and mapping from joint names to joint id. Change extension of .h files to .hh for coherence. Add python code to test new position controller entity in simulation and on the robot.
