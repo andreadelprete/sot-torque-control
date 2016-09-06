@@ -157,7 +157,8 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(ftSensRightHand,  ml::Vector);
         DECLARE_SIGNAL_IN(ddqRef,           ml::Vector);
         DECLARE_SIGNAL_IN(dqRef,            ml::Vector);
-
+        DECLARE_SIGNAL_IN(currentMeasure,   ml::Vector);
+        
         DECLARE_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector); /// debug signal
 
         DECLARE_SIGNAL_OUT(jointsPositions,         ml::Vector);

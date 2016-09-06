@@ -68,7 +68,7 @@ namespace dynamicgraph
       ForceTorqueEstimator::
       ForceTorqueEstimator( const std::string & name )
         : Entity(name),
-        CONSTRUCT_SIGNAL_IN(base6d_encoders,  ml::Vector)
+        CONSTRUCT_SIGNAL_IN(base6d_encoders,   ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(accelerometer,    ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(gyroscope,        ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(ftSensLeftFoot,   ml::Vector)
@@ -77,7 +77,8 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(ftSensRightHand,  ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(ddqRef,           ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(dqRef,            ml::Vector)
-
+        ,CONSTRUCT_SIGNAL_IN(currentMeasure,   ml::Vector)
+        
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsPositions,         ml::Vector, m_q_dq_ddqSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsVelocities,        ml::Vector, m_q_dq_ddqSINNER)
