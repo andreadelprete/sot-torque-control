@@ -69,6 +69,10 @@ namespace dynamicgraph {
         * the IMU and the force/torque sensors' measurements and it computes
         * as output estimates of the joints' torques, the contact
         * forces, the joints' positions, velocities and accelerations.
+        * It also takes current measurment if any available, to compute 
+        * a second estimate of the joints' torques from the motor model.
+        * The two torques estimations can be mixed with signal wCurrentTrust
+        * (value from 0 to 1)
         *
         * QUICK START
         * Create the entity, plug all the input signals, call the init method
@@ -158,6 +162,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(ddqRef,           ml::Vector);
         DECLARE_SIGNAL_IN(dqRef,            ml::Vector);
         DECLARE_SIGNAL_IN(currentMeasure,   ml::Vector);
+        DECLARE_SIGNAL_IN(wCurrentTrust,    ml::Vector);
         
         DECLARE_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector); /// debug signal
 

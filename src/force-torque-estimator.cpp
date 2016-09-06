@@ -78,6 +78,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(ddqRef,           ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(dqRef,            ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(currentMeasure,   ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(wCurrentTrust,    ml::Vector)
         
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsPositions,         ml::Vector, m_q_dq_ddqSINNER)
