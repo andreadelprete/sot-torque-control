@@ -4,30 +4,49 @@ Created on Mon Feb 23 09:02:21 2015
 
 @author: adelpret
 q.shape"""
-
+from IPython import embed
 import numpy as np
 import matplotlib.pyplot as plt
 from plot_utils import *
 from compute_estimates_from_sensors import compute_estimates_from_sensors
 
+DATA_SET = 2;
+
 FOLDER_ID = 2;
-EST_DELAY = 0.04;       ''' delay introduced by the estimation in seconds '''
+EST_DELAY = 0.1;       ''' delay introduced by the estimation in seconds '''
 NJ = 30;                ''' number of joints '''
 DT = 0.001;             ''' sampling period '''
 PLOT_DATA = True;
-FORCE_ESTIMATE_RECOMPUTATION = False;
+FORCE_ESTIMATE_RECOMPUTATION = True;
 NEGLECT_GYROSCOPE = True;
 NEGLECT_ACCELEROMETER = True;
 SET_NORMAL_FORCE_RIGHT_FOOT_TO_ZERO = False;
+USE_FT_SENSORS = True
 JOINT_ID = np.array(range(12)); ''' IDs of the joints to save '''
+if(DATA_SET==1):
+    if(FOLDER_ID==1):
+        data_folder = '../../results/20160712_170026_rsp_torque_id/';
+        JOINT_ID = np.array([16]);
+    elif(FOLDER_ID==2):
+        data_folder = '../../results/20160712_171735_rsp_const_vel/';
+        JOINT_ID = np.array([16]);
+    elif(FOLDER_ID==3):
+        data_folder = '../../results/20160712_182523_rsp_const_acc/';
+        JOINT_ID = np.array([16]);
+if(DATA_SET==2):
+    if(FOLDER_ID==1):
+        #~ data_folder = '../../results/20160720_132041_rsp_torque_id/';
+        #~ data_folder = '../../results/20160720_132429_rsp_torque_id/';
+        data_folder = '../../results/20160720_143905_rsp_torque_id_noGravity/';
+        JOINT_ID = np.array([16]);
+    elif(FOLDER_ID==2):
+        data_folder = '../../results/20160720_134957_rsp_friction_id_ext/';
+        #~ data_folder = '../../results/20160722_144631_rsp_const_vel/';
+        JOINT_ID = np.array([16]);
+    elif(FOLDER_ID==3):
+        data_folder = '../../rien/';
+        JOINT_ID = np.array([16]);
 
-if(FOLDER_ID==1):
-    data_folder = '../results/20160203_172245_id_rhp_pwm/';
-    JOINT_ID = np.array([2]);
-elif(FOLDER_ID==2):
-    data_folder = '../results/20160204_164205_id_rhp_triangle/';
-    JOINT_ID = np.array([2]);
-    
     
 FILE_READ_SUCCEEDED = False;    
 DATA_FILE_NAME = 'data';
@@ -42,7 +61,7 @@ file_name_forceLA = 'dg_HRP2LAAS-forceLARM.dat';
 file_name_forceRA = 'dg_HRP2LAAS-forceRARM.dat';
 file_name_forceLL = 'dg_HRP2LAAS-forceLLEG.dat';
 file_name_forceRL = 'dg_HRP2LAAS-forceRLEG.dat';
-    
+file_name_current = 'dg_HRP2LAAS-currents.dat';
 ''' Load data from file '''
 try:
     data = np.load(data_folder+DATA_FILE_NAME+'.npz');
@@ -60,9 +79,10 @@ try:
     dq = np.empty((N,len(JOINT_ID)));
     ddq = np.empty((N,len(JOINT_ID)));
     tau = np.empty((N,len(JOINT_ID)));
+
 #    ptorques = np.empty((N,len(JOINT_ID)));
 #    p_gains = np.empty((N,len(JOINT_ID)));
-#    currents = np.empty((N,len(JOINT_ID)));
+    current = np.empty((N,len(JOINT_ID)));
     
     FILE_READ_SUCCEEDED = True; 
     
@@ -71,9 +91,9 @@ try:
         ctrl[:,i] = data['ctrl'];
 #        ptorques[:,i] = data['ptorque'];
 #        p_gains[:,i] = data['p_gain'];
-#        currents[:,i] = data['current'];
+        current[:,i] = data['current']; 
         if(FORCE_ESTIMATE_RECOMPUTATION==False):
-            dq[:,i] = data['dq'];
+            dq [:,i] = data['dq'];
             ddq[:,i] = data['ddq'];
             tau[:,i] = data['tau'];
 
@@ -89,7 +109,7 @@ except (IOError, KeyError):
     forceLL = np.loadtxt(data_folder+file_name_forceLL);
     forceRL = np.loadtxt(data_folder+file_name_forceRL);
 #    ptorques = np.loadtxt(data_folder+file_name_ptorque);
-#    currents = np.loadtxt(data_folder+file_name_current);
+    current = np.loadtxt(data_folder+file_name_current);
 #    p_gains = np.loadtxt(data_folder+file_name_p_gain);
     
     # check that largest signal has same length of smallest signal
@@ -98,9 +118,12 @@ except (IOError, KeyError):
     if(n_acc!=n_enc):
         print "Reducing size of signals from %d to %d" % (n_acc, n_enc);
     N = np.min([n_enc,n_acc]);
+
     time = enc[:N,0];
     ctrl = ctrl[:N,1:];
     ctrl = ctrl[:,JOINT_ID].reshape(N,len(JOINT_ID));
+    current = current[:N,1:];
+    current = current[:,JOINT_ID].reshape(N,len(JOINT_ID));
     enc  = enc[:N,7:];
     acc  = acc[:N,1:];
     gyro = gyro[:N,1:];
@@ -109,10 +132,11 @@ except (IOError, KeyError):
     forceLL = forceLL[:N,1:];
     forceRL = forceRL[:N,1:];
 #    ptorques = ptorques[:N,1:];
-#    currents = currents[:N,1:];
 #    p_gains = p_gains[:N,1:];
-    
     # save sensor data
+
+    
+    
     np.savez(data_folder+DATA_FILE_NAME+'.npz', 
              time=time, 
              enc=enc.reshape(N,NJ), 
@@ -141,6 +165,8 @@ if(FORCE_ESTIMATE_RECOMPUTATION or FILE_READ_SUCCEEDED==False):
     a['forceRA']  = forceRA;
     a['forceLL']  = forceLL;
     a['forceRL']  = forceRL;
+    
+
     if(SET_NORMAL_FORCE_RIGHT_FOOT_TO_ZERO):
         a['forceRL'][:,2] = 0.0;
     if(NEGLECT_ACCELEROMETER):
@@ -150,7 +176,7 @@ if(FORCE_ESTIMATE_RECOMPUTATION or FILE_READ_SUCCEEDED==False):
     if(NEGLECT_GYROSCOPE==False):
         a['gyro']     = gyro;
     a['time']     = np.squeeze(time*DT);
-    (tau, dq, ddq) = compute_estimates_from_sensors(a, EST_DELAY);
+    (tau, dq, ddq) = compute_estimates_from_sensors(a, EST_DELAY, USE_FT_SENSORS=USE_FT_SENSORS);
     
     # shift estimate backward in time to compensate for estimation delay
     dq[:-N_DELAY,:]  = dq[N_DELAY::,:];
@@ -167,27 +193,33 @@ if(FORCE_ESTIMATE_RECOMPUTATION or FILE_READ_SUCCEEDED==False):
     
     for i in range(len(JOINT_ID)):
         np.savez(data_folder+DATA_FILE_NAME+'_j'+str(JOINT_ID[i])+'.npz', ctrl=ctrl[:,i], 
-                 enc=enc[:,JOINT_ID[i]], tau=tau[:,i], dq=dq[:,i], ddq=ddq[:,i]); 
-                 #, current=currents[:,i], ptorque=ptorques[:,i], p_gain=p_gains[:,i]);
+                 enc=enc[:,JOINT_ID[i]], tau=tau[:,i], dq=dq[:,i], ddq=ddq[:,i], current=current[:,i]);
+                 #, ptorque=ptorques[:,i], p_gain=p_gains[:,i]);
 
 
+#embed()
 if(PLOT_DATA):
     ''' Plot data '''
     if(NEGLECT_ACCELEROMETER==False):
         plt.figure(); plt.plot(acc); plt.title('Acc');
     if(NEGLECT_GYROSCOPE==False):
         plt.figure(); plt.plot(gyro); plt.title('Gyro');
-#    plt.figure(); plt.plot(forceLA); plt.title('Force Left Arm');
-#    plt.figure(); plt.plot(forceRA); plt.title('Force Right Arm');
-#    plt.figure(); plt.plot(forceLL); plt.title('Force Left Leg');
-    plt.figure(); plt.plot(forceRL); plt.title('Force Right Leg');
+    #~ plt.figure(); plt.plot(forceLA); plt.title('Force Left Arm');
+    plt.figure(); plt.plot(forceRA); plt.title('Force Right Arm'); plt.legend(['fx','fy','fz','mx','my','mz']);
+    plt.plot(enc[:,JOINT_ID[i]], '--');
+    #~ plt.figure(); plt.plot(forceLL); plt.title('Force Left Leg');
+    #~ plt.figure(); plt.plot(forceRL); plt.title('Force Right Leg');
     
     for i in range(len(JOINT_ID)):
 #        plt.figure(); plt.plot(enc[:,JOINT_ID[i]]-ctrl[:,i]); plt.title('Delta_q '+str(JOINT_ID[i]));
         plt.figure(); plt.plot(dq[:,i]); plt.title('Joint velocity '+str(JOINT_ID[i]));
+        plt.figure(); plt.plot(ddq[:,i]); plt.title('Joint acceleration '+str(JOINT_ID[i]));
         plt.figure(); plt.plot(tau[:,i]); plt.title('Joint torque '+str(JOINT_ID[i]));
         plt.figure(); plt.plot(tau[:,i], ctrl[:,i], 'b. '); plt.title('Torque VS pwm '+str(JOINT_ID[i]));
-#        plt.figure(); plt.plot(tau[:,i], currents[:,i]); plt.title('Torque VS current '+str(JOINT_ID[i]));
+        plt.figure(); plt.plot(tau[:,i], current[:,i],'.'); plt.title('Torque VS current '+str(JOINT_ID[i]));
+        plt.figure(); plt.plot(tau[:,i], current[:,i],'.'); plt.title('Torque VS current '+str(JOINT_ID[i]));
+        plt.figure(); plt.plot(dq[:,i], current[:,i],'.'); plt.title('Velocity VS current '+str(JOINT_ID[i]));
+        plt.figure(); plt.plot(ddq[:,i], current[:,i],'.'); plt.title('Velocity VS current '+str(JOINT_ID[i]));
 #        plt.figure(); plt.plot(p_gains[:,i]); plt.title('Proportional gain '+str(JOINT_ID[i]));
         plt.show(); 
 
