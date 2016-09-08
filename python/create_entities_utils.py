@@ -51,7 +51,7 @@ def create_estimator(device, dt, delay, traj_gen=None):
     if(traj_gen!=None):
         plug(traj_gen.dq,       estimator.dqRef);
         plug(traj_gen.ddq,      estimator.ddqRef);
-    estimator.init(dt,delay,delay,delay,delay,True);
+    estimator.init(dt,delay,delay,delay,delay,delay,True);
     
     return estimator;
         

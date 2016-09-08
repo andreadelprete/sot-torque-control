@@ -73,7 +73,11 @@ namespace dynamicgraph {
         * a second estimate of the joints' torques from the motor model.
         * The two torques estimations can be mixed with signal wCurrentTrust
         * (value from 0 to 1)
-        *
+        * As current measurment can saturate to a lower value than the 
+        * real motor current, an input signal saturationCurrent must be provide.
+        * If a current sensor is not available for some joint, this value 
+        * should be set to zero.
+        * 
         * QUICK START
         * Create the entity, plug all the input signals, call the init method
         * specifying the control-loop time step and the desired delay introduced
@@ -162,6 +166,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(ddqRef,           ml::Vector);
         DECLARE_SIGNAL_IN(dqRef,            ml::Vector);
         DECLARE_SIGNAL_IN(currentMeasure,   ml::Vector);
+        DECLARE_SIGNAL_IN(saturationCurrent,ml::Vector);
         DECLARE_SIGNAL_IN(wCurrentTrust,    ml::Vector);
         
         DECLARE_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector); /// debug signal
@@ -214,6 +219,8 @@ namespace dynamicgraph {
         double m_delayFTsens;     /// delay introduced by the filtering of the F/T sensors
         double m_delayAcc;        /// delay introduced by the filtering of the accelerometer
         double m_delayGyro;       /// delay introduced by the filtering of the gyroscope
+        double m_delayCurrent;    /// delay introduced by the filtering of the motor current measure
+
         bool m_is_first_iter;     /// true at the first iteration, false after
         bool m_useRefJointsAcc;   /// if true it uses the reference (rather than estimated) joints acc to estimate torques and ext forces
         bool m_useRefJointsVel;   /// if true it uses the reference (rather than estimated) joints vel to estimate torques and ext forces
@@ -234,6 +241,7 @@ namespace dynamicgraph {
         std::vector<double> m_ftSens_RH_std, m_ftSens_RH_filter_std;  /// force/torque sensor right hand
         std::vector<double> m_ftSens_LF_std, m_ftSens_LF_filter_std;  /// force/torque sensor left foot
         std::vector<double> m_ftSens_RF_std, m_ftSens_RF_filter_std;  /// force/torque sensor right foot
+        std::vector<double> m_currentMeasure_std, m_currentMeasure_filter_std;  /// motor current measure
 
         /// spatial velocity and acceleration of the torso
         metapod::Spatial::MotionTpl<double> m_v_torso;
@@ -247,6 +255,8 @@ namespace dynamicgraph {
         PolyEstimator* m_ftSensRightFootFilter;
         PolyEstimator* m_ftSensLeftHandFilter;
         PolyEstimator* m_ftSensRightHandFilter;
+        PolyEstimator* m_currentMeasureFilter;
+        
 
         /// force/torque sensors' offsets taken at the initialization
         Eigen::VectorXd m_ftSensLeftHand_offset;
@@ -292,7 +302,7 @@ namespace dynamicgraph {
         Hrp2_14 m_robot;
         Hrp2_14::confVector m_q, m_dq, m_ddq;
         Hrp2_14::confVector m_torques;
-
+        
       public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -314,7 +324,8 @@ namespace dynamicgraph {
          */
         void init(const double &timestep, const double &delayEncoders,
                   const double& delayFTsens, const double& delayAcc,
-                  const double& delayGyro,const bool &computeForceSensorsOffsets);
+                  const double& delayGyro,const double& delayCurrent,
+                  const bool &computeForceSensorsOffsets);
 
         void setFTsensorOffsets(const ml::Vector& offsets);
 

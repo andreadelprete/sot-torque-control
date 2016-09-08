@@ -31,7 +31,7 @@ namespace dynamicgraph
                                      << m_ftSensLeftHandSIN << m_ftSensRightHandSIN
 
 #define ALL_INPUT_SIGNALS m_base6d_encodersSIN << m_accelerometerSIN << m_gyroscopeSIN \
-                          << m_ddqRefSIN << m_dqRefSIN << FORCE_TORQUE_SENSORS_SIGNALS
+                          << m_ddqRefSIN << m_dqRefSIN << m_currentMeasureSIN << m_saturationCurrentSIN << m_wCurrentTrustSIN << FORCE_TORQUE_SENSORS_SIGNALS
 
 #define KINEMATIC_OUTPUT_SIGNALS \
                           m_jointsPositionsSOUT << m_jointsVelocitiesSOUT \
@@ -78,6 +78,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(ddqRef,           ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(dqRef,            ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(currentMeasure,   ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(saturationCurrent,ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(wCurrentTrust,    ml::Vector)
         
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
@@ -124,7 +125,7 @@ namespace dynamicgraph
         /* Commands. */
         addCommand("getTimestep",
                    makeDirectGetter(*this,&m_dt,
-                                    docDirectGetter("Control timestep [s]","double")));
+                                    docDirectGetter("Control timestep [s ]","double")));
         addCommand("getDelayEnc",
                    makeDirectGetter(*this,&m_delayEncoders,
                                     docDirectGetter("Delay introduced by the estimation of joints pos/vel/acc [s]","double")));
@@ -137,6 +138,9 @@ namespace dynamicgraph
         addCommand("getDelayGyro",
                    makeDirectGetter(*this,&m_delayGyro,
                                     docDirectGetter("Delay introduced by the filtering of the gyroscope [s]","double")));
+        addCommand("getDelayCurrent",
+                   makeDirectGetter(*this,&m_delayCurrent,
+                                    docDirectGetter("Delay introduced by the filtering of the motor current measure [s]","double")));
         addCommand("getUseRefJointVel",
                    makeDirectGetter(*this,&m_useRefJointsVel,
                                     docDirectGetter("Whether to use reference joints vel to estimate joints torques and ext forces","bool")));
@@ -175,13 +179,14 @@ namespace dynamicgraph
                                          docCommandVoid1("Set the 4 F/T sensor offsets.",
                                                          "24-d vector [s].")));
 
-        addCommand("init", makeCommandVoid6(*this, &ForceTorqueEstimator::init,
-                              docCommandVoid6("Initialize the estimator.",
+        addCommand("init", makeCommandVoid7(*this, &ForceTorqueEstimator::init,
+                              docCommandVoid7("Initialize the estimator.",
                                               "Control timestep [s].",
                                               "Estimation delay for joints pos/vel/acc [s].",
                                               "Estimation delay for F/T sensors [s].",
                                               "Estimation delay for accelerometer [s].",
                                               "Estimation delay for gyroscope [s].",
+                                              "Estimation delay for motor current [s].",
                                               "If true the offset of the force sensors is computed.")));
       }
 
@@ -190,7 +195,7 @@ namespace dynamicgraph
       /* --- COMMANDS ---------------------------------------------------------- */
       /* --- COMMANDS ---------------------------------------------------------- */
       void ForceTorqueEstimator::init(const double &timestep, const double& delayEncoders,
-                                      const double& delayFTsens, const double& delayAcc, const double& delayGyro,
+                                      const double& delayFTsens, const double& delayAcc, const double& delayGyro, const double& delayCurrent,
                                       const bool &computeForceSensorsOffsets)
       {
         assert(timestep>0.0 && "Timestep should be > 0");
@@ -198,17 +203,19 @@ namespace dynamicgraph
         assert(delayFTsens>=timestep && "Estimation delay for F/T sensors should be >= timestep");
         assert(delayAcc>=timestep && "Estimation delay for accelerometer should be >= timestep");
         assert(delayGyro>=timestep && "Estimation delay for gyroscope should be >= timestep");
-
+        assert(delayCurrent>=timestep && "Estimation delay for motor current should be >= timestep");
         m_dt = timestep;
         m_delayEncoders = delayEncoders;
         m_delayFTsens   = delayFTsens;
         m_delayAcc      = delayAcc;
         m_delayGyro     = delayGyro;
+        m_delayCurrent  = delayCurrent;
         m_computeFTsensorOffsets = computeForceSensorsOffsets;
         int winSizeEnc     = (int)(2*delayEncoders/m_dt);
         int winSizeFT      = (int)(2*delayFTsens/m_dt);
         int winSizeAcc     = (int)(2*delayAcc/m_dt);
         int winSizeGyro    = (int)(2*delayGyro/m_dt);
+        int winSizeCur     = (int)(2*delayCurrent/m_dt);
         assert(winSizeEnc>=3 && "Estimation-window's length for encoders should be >= 3");
         assert(winSizeFT>=2 && "Estimation-window's length for F/T sensors should be >= 2");
         assert(winSizeAcc>=2 && "Estimation-window's length for accelerometer should be >= 2");
@@ -221,12 +228,16 @@ namespace dynamicgraph
         m_ftSensRightFootFilter  = new LinEstimator(winSizeFT, 6, m_dt);
         m_ftSensLeftHandFilter   = new LinEstimator(winSizeFT, 6, m_dt);
         m_ftSensRightHandFilter  = new LinEstimator(winSizeFT, 6, m_dt);
+        m_currentMeasureFilter   = new LinEstimator(winSizeCur, N_JOINTS, m_dt);
+        
 
         m_ddq_filter_std.resize(N_JOINTS);
         m_dq_filter_std.resize(N_JOINTS);
         m_q_filter_std.resize(N_JOINTS);
         m_q_std.resize(N_JOINTS);
-        m_dv_IMU_std.resize(3);
+        m_currentMeasure_std.resize(N_JOINTS);
+        m_currentMeasure_filter_std.resize(N_JOINTS);
+                m_dv_IMU_std.resize(3);
         m_dv_IMU_filter_std.resize(3);
         m_w_IMU_std.resize(3);
         m_w_IMU_filter_std.resize(3);
@@ -363,6 +374,14 @@ namespace dynamicgraph
         // map data from mal to eigen vectors
         EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
+
+        // copy current measurements from mal to std vectors
+        COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter),  m_currentMeasure_std);
+        // filter force/torque sensors' measurements
+        m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
+        // map filtered force/torque measurements from std to Eigen vectors
+        EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
+
 
         /// COMPUTE BASE ANGULAR VELOCITY AND ACCELERATION FROM IMU MEASUREMENTS
         if(m_useRawEncoders)
@@ -559,12 +578,16 @@ namespace dynamicgraph
 //        SEND_MSG("ddq: "+toString(m_ddq.transpose()), MSG_TYPE_DEBUG);
 //        SEND_MSG("Tau: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
 
+        /// *** Get Joints Torques from gearmotors models
+        //TODO Work here
+        
         // copy estimated joints' torques to output signal
         for(int i=0; i<N_JOINTS; i++)
           s(i) = m_torques(i+6);
         for(int i=0; i<6; i++)
           s(N_JOINTS+6*m_INDEX_WRENCH_BODY+i)   = m_torques(i);
-
+        printf("JE SUIS ICI!");//debug
+        SEND_MSG("currentMeasure: "+toString(m_currentMeasure_std), MSG_TYPE_DEBUG);
         return s;
       }
 
