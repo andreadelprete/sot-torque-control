@@ -18,6 +18,7 @@
 #include <sot/core/debug.hh>
 #include <dynamic-graph/factory.h>
 #include <sot/torque_control/commands-helper.hh>
+#include <sot/torque_control/motor-model.hh>
 #include <Eigen/Dense>
 
 namespace dynamicgraph
@@ -377,9 +378,9 @@ namespace dynamicgraph
 
         // copy current measurements from mal to std vectors
         COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter),  m_currentMeasure_std);
-        // filter force/torque sensors' measurements
+        // filter current measurements
         m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
-        // map filtered force/torque measurements from std to Eigen vectors
+        // map filtered current measurements from std to Eigen vectors
         EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
 
 
@@ -579,7 +580,8 @@ namespace dynamicgraph
 //        SEND_MSG("Tau: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
 
         /// *** Get Joints Torques from gearmotors models
-        //TODO Work here
+        for(int i=0; i<N_JOINTS; i++)
+            motorModel.getTorque(m_currentMeasure_filter_std[i],m_q(i),m_dq(i),m_ddq(i),2.0,2.0);
         
         // copy estimated joints' torques to output signal
         for(int i=0; i<N_JOINTS; i++)
@@ -588,6 +590,7 @@ namespace dynamicgraph
           s(N_JOINTS+6*m_INDEX_WRENCH_BODY+i)   = m_torques(i);
         printf("JE SUIS ICI!");//debug
         SEND_MSG("currentMeasure: "+toString(m_currentMeasure_std), MSG_TYPE_DEBUG);
+        SEND_MSG("currentMeasure filter: "+toString(m_currentMeasure_filter_std), MSG_TYPE_DEBUG);
         return s;
       }
 

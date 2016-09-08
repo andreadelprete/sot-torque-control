@@ -56,6 +56,8 @@
 #include <metapod/tools/print.hh>
 #include <metapod/tools/initconf.hh>
 
+/*Motor model*/
+#include <sot/torque_control/motor-model.hh>
 
 namespace dynamicgraph {
   namespace sot {
@@ -203,6 +205,9 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_INNER(w_dv_torso,            ml::Vector);
 
       protected:
+      
+        MotorModel motorModel;
+      
         /// index ordering the 5 estimated contact wrenches inside the
         /// inner signal torques_wrenches
         static const int m_INDEX_WRENCH_LEFT_HAND   = 0;

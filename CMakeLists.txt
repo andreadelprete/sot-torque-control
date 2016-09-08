@@ -81,6 +81,7 @@ SET(LIBRARY_NAME ${SOTTORQUECONTROL_LIB_NAME})
 SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/joint-torque-controller.hh
   include/sot/torque_control/force-torque-estimator.hh
+  include/sot/torque_control/motor-model.hh
   include/sot/torque_control/joint-trajectory-generator.hh
   include/sot/torque_control/inverse-dynamics-controller.hh
   include/sot/torque_control/position-controller.hh
@@ -113,6 +114,8 @@ SET(${LIBRARY_NAME}_SOURCES ${${LIBRARY_NAME}_HEADERS}
     src/quad-estimator.cpp
     src/stop-watch.cpp
     src/hrp2-common.cpp
+    src/motor-model.cpp
+    
 )
 
 SET(${LIBRARY_NAME}_PYTHON_FILES python/*.py)
