@@ -32,7 +32,14 @@ namespace dynamicgraph
                                      << m_ftSensLeftHandSIN << m_ftSensRightHandSIN
 
 #define ALL_INPUT_SIGNALS m_base6d_encodersSIN << m_accelerometerSIN << m_gyroscopeSIN \
-                          << m_ddqRefSIN << m_dqRefSIN << m_currentMeasureSIN << m_saturationCurrentSIN << m_wCurrentTrustSIN << FORCE_TORQUE_SENSORS_SIGNALS
+                          << m_ddqRefSIN << m_dqRefSIN << m_currentMeasureSIN \
+                          << m_saturationCurrentSIN << m_wCurrentTrustSIN << FORCE_TORQUE_SENSORS_SIGNALS \
+                          << m_motorParameterKt_pSIN << m_motorParameterKt_nSIN \
+                          << m_motorParameterKf_pSIN << m_motorParameterKf_nSIN \
+                          << m_motorParameterKv_pSIN << m_motorParameterKv_nSIN \
+                          << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN
+
+
 
 #define KINEMATIC_OUTPUT_SIGNALS \
                           m_jointsPositionsSOUT << m_jointsVelocitiesSOUT \
@@ -81,7 +88,14 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(currentMeasure,   ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(saturationCurrent,ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(wCurrentTrust,    ml::Vector)
-        
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKt_p, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKt_n, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKf_p, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKf_n, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKv_p, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKv_n, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKa_p, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(motorParameterKa_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsPositions,         ml::Vector, m_q_dq_ddqSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsVelocities,        ml::Vector, m_q_dq_ddqSINNER)
@@ -238,7 +252,17 @@ namespace dynamicgraph
         m_q_std.resize(N_JOINTS);
         m_currentMeasure_std.resize(N_JOINTS);
         m_currentMeasure_filter_std.resize(N_JOINTS);
-                m_dv_IMU_std.resize(3);
+        m_saturationCurrent_std.resize(N_JOINTS);
+        m_wCurrentTrust_std.resize(N_JOINTS);
+        m_motorParameterKt_p_std.resize(N_JOINTS);
+        m_motorParameterKt_n_std.resize(N_JOINTS);
+        m_motorParameterKf_p_std.resize(N_JOINTS);
+        m_motorParameterKf_n_std.resize(N_JOINTS);
+        m_motorParameterKv_p_std.resize(N_JOINTS);
+        m_motorParameterKv_n_std.resize(N_JOINTS);
+        m_motorParameterKa_p_std.resize(N_JOINTS);
+        m_motorParameterKa_n_std.resize(N_JOINTS);
+        m_dv_IMU_std.resize(3);
         m_dv_IMU_filter_std.resize(3);
         m_w_IMU_std.resize(3);
         m_w_IMU_filter_std.resize(3);
@@ -376,13 +400,24 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
 
-        // copy current measurements from mal to std vectors
-        COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter),  m_currentMeasure_std);
+        // copy current measurements, saturation and mixing weigth from mal to std vectors
+        COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
+        COPY_VECTOR_TO_ARRAY(m_saturationCurrentSIN(iter),  m_saturationCurrent_std);
+        COPY_VECTOR_TO_ARRAY(m_wCurrentTrustSIN(iter)    ,  m_wCurrentTrust_std    );
         // filter current measurements
         m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
         // map filtered current measurements from std to Eigen vectors
         EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
 
+        // copy motor model parameters from mal to std vectors
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKt_pSIN(iter), m_motorParameterKt_p_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKt_nSIN(iter), m_motorParameterKt_n_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKf_pSIN(iter), m_motorParameterKf_p_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKf_nSIN(iter), m_motorParameterKf_n_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKv_pSIN(iter), m_motorParameterKv_p_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKv_nSIN(iter), m_motorParameterKv_n_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKa_pSIN(iter), m_motorParameterKa_p_std  );
+        COPY_VECTOR_TO_ARRAY(m_motorParameterKa_nSIN(iter), m_motorParameterKa_n_std  );
 
         /// COMPUTE BASE ANGULAR VELOCITY AND ACCELERATION FROM IMU MEASUREMENTS
         if(m_useRawEncoders)
@@ -578,19 +613,27 @@ namespace dynamicgraph
 //        SEND_MSG("dv torso: "+toString(dv_torso_eig.transpose()), MSG_TYPE_DEBUG);
 //        SEND_MSG("ddq: "+toString(m_ddq.transpose()), MSG_TYPE_DEBUG);
 //        SEND_MSG("Tau: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
-
-        /// *** Get Joints Torques from gearmotors models
+        //SEND_MSG("Tau without using current: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
+        /// *** Get Joints Torques from gearmotors models and mix it with RNEA torques
         for(int i=0; i<N_JOINTS; i++)
-            motorModel.getTorque(m_currentMeasure_filter_std[i],m_q(i),m_dq(i),m_ddq(i),2.0,2.0);
-        
+            if (( m_currentMeasure_std[i] < +m_saturationCurrent_std[i] ) && 
+                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check on the filtered data? With an eps?
+            {
+                double current = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
+                                                       m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
+                                                       m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
+                                                       m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
+                                                       m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
+                m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*current ; 
+            }
+        //SEND_MSG("Tau using current: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
         // copy estimated joints' torques to output signal
         for(int i=0; i<N_JOINTS; i++)
           s(i) = m_torques(i+6);
         for(int i=0; i<6; i++)
           s(N_JOINTS+6*m_INDEX_WRENCH_BODY+i)   = m_torques(i);
-        printf("JE SUIS ICI!");//debug
-        SEND_MSG("currentMeasure: "+toString(m_currentMeasure_std), MSG_TYPE_DEBUG);
-        SEND_MSG("currentMeasure filter: "+toString(m_currentMeasure_filter_std), MSG_TYPE_DEBUG);
+        //SEND_MSG("currentMeasure: "+toString(m_currentMeasure_std), MSG_TYPE_DEBUG);
+        //SEND_MSG("currentMeasure filter: "+toString(m_currentMeasure_filter_std), MSG_TYPE_DEBUG);
         return s;
       }
 

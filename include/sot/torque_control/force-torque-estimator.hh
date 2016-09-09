@@ -170,6 +170,14 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(currentMeasure,   ml::Vector);
         DECLARE_SIGNAL_IN(saturationCurrent,ml::Vector);
         DECLARE_SIGNAL_IN(wCurrentTrust,    ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKt_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKt_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKf_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKf_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKv_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKv_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKa_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKa_n, ml::Vector);
         
         DECLARE_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector); /// debug signal
 
@@ -247,6 +255,16 @@ namespace dynamicgraph {
         std::vector<double> m_ftSens_LF_std, m_ftSens_LF_filter_std;  /// force/torque sensor left foot
         std::vector<double> m_ftSens_RF_std, m_ftSens_RF_filter_std;  /// force/torque sensor right foot
         std::vector<double> m_currentMeasure_std, m_currentMeasure_filter_std;  /// motor current measure
+        std::vector<double> m_saturationCurrent_std;   /// motor current sensor saturation
+        std::vector<double> m_wCurrentTrust_std;       /// torque estimation mixing weight
+        std::vector<double> m_motorParameterKt_p_std;  /// motor parameter Kt when dq>0
+        std::vector<double> m_motorParameterKt_n_std;  /// motor parameter Kt when dq<0
+        std::vector<double> m_motorParameterKf_p_std;  /// motor parameter Kf when dq>0
+        std::vector<double> m_motorParameterKf_n_std;  /// motor parameter Kf when dq<0
+        std::vector<double> m_motorParameterKv_p_std;  /// motor parameter Kv when dq>0
+        std::vector<double> m_motorParameterKv_n_std;  /// motor parameter Kv when dq<0
+        std::vector<double> m_motorParameterKa_p_std;  /// motor parameter Ka when dq>0
+        std::vector<double> m_motorParameterKa_n_std;  /// motor parameter Ka when dq<0
 
         /// spatial velocity and acceleration of the torso
         metapod::Spatial::MotionTpl<double> m_v_torso;
