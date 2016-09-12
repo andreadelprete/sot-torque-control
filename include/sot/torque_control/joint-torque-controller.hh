@@ -45,6 +45,9 @@
 #include <sot/torque_control/utils/logger.hh>
 #include <sot/torque_control/hrp2-common.hh>
 
+/*Motor model*/
+#include <sot/torque_control/motor-model.hh>
+
 namespace dynamicgraph {
   namespace sot {
     namespace torque_control {
@@ -92,8 +95,16 @@ namespace dynamicgraph {
 //        DECLARE_SIGNAL_IN(activeJoints,           ml::Vector);      /// mask with 1 for (torque) controlled joints and 0 for position controlled joints
 
         /// parameters for the linear model
-        DECLARE_SIGNAL_IN(k_tau,                ml::Vector);
-        DECLARE_SIGNAL_IN(k_v,                  ml::Vector);
+        DECLARE_SIGNAL_IN(k_tau,                ml::Vector); //to be del
+        DECLARE_SIGNAL_IN(k_v,                  ml::Vector); //to be del
+        DECLARE_SIGNAL_IN(motorParameterKt_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKt_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKf_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKf_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKv_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKv_n, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKa_p, ml::Vector);
+        DECLARE_SIGNAL_IN(motorParameterKa_n, ml::Vector);
 
         /// input from inverse dynamics controller for computing
         /// monitoring signals deltaQ_ff, deltaQ_fb
@@ -140,7 +151,7 @@ namespace dynamicgraph {
 //        DECLARE_SIGNAL_IN(g_dq1n,               ml::Vector);
 //        DECLARE_SIGNAL_IN(g_dq2n,               ml::Vector);
 
-        DECLARE_SIGNAL_OUT(desiredPwm,  ml::Vector);  /// pwmDes to command to the motors
+        DECLARE_SIGNAL_OUT(desiredCurrent,  ml::Vector);  /// currentDes to command to the motors
 
         /// Signals for monitoring the behavior of the entity
         DECLARE_SIGNAL_OUT(predictedJointsTorques,  ml::Vector);  /// k_tau^{-1}*(delta_q - k_v*dq)
@@ -160,12 +171,13 @@ namespace dynamicgraph {
 //        DECLARE_SIGNAL_OUT(smoothSignDdq,           ml::Vector);  /// smooth approximation of sign(ddq)
 
       protected:
+        MotorModel motorModel;
         bool m_firstIter;
         double m_dt; /// timestep of the controller
         Eigen::VectorXd m_tau_star;
         Eigen::VectorXd m_f;
         Eigen::VectorXd m_g;
-        Eigen::VectorXd m_pwm_des;
+        Eigen::VectorXd m_current_des;
         Eigen::VectorXd m_tauErrIntegral; /// integral of the torque error
         Eigen::VectorXd m_qDes_for_position_controlled_joints;
         std::vector<bool> m_activeJoints;

@@ -617,14 +617,14 @@ namespace dynamicgraph
         /// *** Get Joints Torques from gearmotors models and mix it with RNEA torques
         for(int i=0; i<N_JOINTS; i++)
             if (( m_currentMeasure_std[i] < +m_saturationCurrent_std[i] ) && 
-                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check on the filtered data? With an eps?
+                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check it on the filtered data? With an eps?
             {
-                double current = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
-                                                       m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
-                                                       m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
-                                                       m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
-                                                       m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
-                m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*current ; 
+                double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
+                                                                 m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
+                                                                 m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
+                                                                 m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
+                                                                 m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
+                m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*torqueFromCurrent ; 
             }
         //SEND_MSG("Tau using current: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
         // copy estimated joints' torques to output signal
