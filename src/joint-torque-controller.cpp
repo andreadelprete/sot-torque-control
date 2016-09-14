@@ -253,19 +253,19 @@ namespace dynamicgraph
             for(int i=0; i<N_JOINTS; i++)
             {
                 m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i+6), ddq(i+6),
-                                                                     motorParameterKt_p(i), motorParameterKt_n(i),
-                                                                     motorParameterKf_p(i), motorParameterKf_n(i),
-                                                                     motorParameterKv_p(i), motorParameterKv_n(i),
-                                                                     motorParameterKa_p(i), motorParameterKa_n(i) );
+                                                         motorParameterKt_p(i), motorParameterKt_n(i),
+                                                         motorParameterKf_p(i), motorParameterKf_n(i),
+                                                         motorParameterKv_p(i), motorParameterKv_n(i),
+                                                         motorParameterKa_p(i), motorParameterKa_n(i) );
             }
         else if(dq.size()==N_JOINTS+6)
             for(int i=0; i<N_JOINTS; i++)
             {
                 m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i), ddq(i),
-                                                                     motorParameterKt_p(i), motorParameterKt_n(i),
-                                                                     motorParameterKf_p(i), motorParameterKf_n(i),
-                                                                     motorParameterKv_p(i), motorParameterKv_n(i),
-                                                                     motorParameterKa_p(i), motorParameterKa_n(i) );
+                                                         motorParameterKt_p(i), motorParameterKt_n(i),
+                                                         motorParameterKf_p(i), motorParameterKf_n(i),
+                                                         motorParameterKv_p(i), motorParameterKv_n(i),
+                                                         motorParameterKa_p(i), motorParameterKa_n(i) );
             }
             else
           SEND_ERROR_STREAM_MSG("Unexpected size of signal dq: "+toString(dq.size()));

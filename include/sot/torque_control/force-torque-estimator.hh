@@ -196,7 +196,8 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(contactWrenchRightHand,  ml::Vector);
         DECLARE_SIGNAL_OUT(contactWrenchBody,       ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorques,           ml::Vector);
-
+        DECLARE_SIGNAL_OUT(jointsTorquesFromMotorModel,    ml::Vector);
+        DECLARE_SIGNAL_OUT(jointsTorquesFromInertiaModel,  ml::Vector);
         /// The following inner signals are used because this entity has some output signals
         /// whose related quantities are computed at the same time by the same algorithm
         /// (e.g. torques and contact wrenches are computed by the RNEA). to avoid the risk
@@ -207,11 +208,13 @@ namespace dynamicgraph {
 
         /// This signal contains the joints' torques and all the 5 contact wrenches
         DECLARE_SIGNAL_INNER(torques_wrenches,      ml::Vector);
+        /// This signal contains the joints' torques estimated from motor model and current measurment
+        DECLARE_SIGNAL_INNER(torquesFromMotorModel, ml::Vector);
         /// This signal contains the estimated joints positions, velocities and accelerations.
         DECLARE_SIGNAL_INNER(q_dq_ddq,              ml::Vector);
         /// This signal contains the estimated base angular velocity and lin/ang accelerations.
         DECLARE_SIGNAL_INNER(w_dv_torso,            ml::Vector);
-
+        
       protected:
       
         MotorModel motorModel;

@@ -39,8 +39,6 @@ namespace dynamicgraph
                           << m_motorParameterKv_pSIN << m_motorParameterKv_nSIN \
                           << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN
 
-
-
 #define KINEMATIC_OUTPUT_SIGNALS \
                           m_jointsPositionsSOUT << m_jointsVelocitiesSOUT \
                            << m_jointsAccelerationsSOUT << m_torsoAccelerationSOUT \
@@ -50,11 +48,13 @@ namespace dynamicgraph
                            << m_contactWrenchRightFootSOUT << m_contactWrenchLeftHandSOUT \
                            << m_contactWrenchRightSoleSOUT << m_contactWrenchLeftSoleSOUT \
                            << m_contactWrenchRightHandSOUT << m_contactWrenchBodySOUT \
-                           << m_jointsTorquesSOUT << m_baseAccelerationSOUT << m_baseAngularVelocitySOUT \
+                           << m_jointsTorquesSOUT \
+                           << m_jointsTorquesFromMotorModelSOUT \
+                           << m_jointsTorquesFromInertiaModelSOUT \
+                           << m_baseAccelerationSOUT << m_baseAngularVelocitySOUT \
                            << m_ftSensRightFootPredictionSOUT
 
 #define PROFILE_JOINTS_TORQUES_COMPUTATION  "Estimator: tau computation"
-
 
       namespace dg = ::dynamicgraph;
       using namespace dg;
@@ -111,13 +111,21 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_OUT(contactWrenchLeftHand,   ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(contactWrenchRightHand,  ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(contactWrenchBody,       ml::Vector, m_torques_wrenchesSINNER)
-        ,CONSTRUCT_SIGNAL_OUT(jointsTorques,           ml::Vector, m_torques_wrenchesSINNER)
+        ,CONSTRUCT_SIGNAL_OUT(jointsTorques,           ml::Vector, m_torques_wrenchesSINNER << m_torquesFromMotorModelSINNER)
+        ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromMotorModel,   ml::Vector, m_torquesFromMotorModelSINNER)
+        ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromInertiaModel, ml::Vector, m_torques_wrenchesSINNER)
 
         ,CONSTRUCT_SIGNAL_INNER(torques_wrenches,      ml::Vector, FORCE_TORQUE_SENSORS_SIGNALS
                                                                 <<KINEMATIC_OUTPUT_SIGNALS
                                                                 <<m_ddqRefSIN
                                                                 <<m_dqRefSIN
                                                                 <<m_base6d_encodersSIN)
+                                                                
+        ,CONSTRUCT_SIGNAL_INNER(torquesFromMotorModel, ml::Vector,KINEMATIC_OUTPUT_SIGNALS
+                                                                <<m_ddqRefSIN
+                                                                <<m_dqRefSIN
+                                                                <<m_base6d_encodersSIN
+                                                                <<m_currentMeasureSIN)
         ,CONSTRUCT_SIGNAL_INNER(q_dq_ddq,              ml::Vector, m_base6d_encodersSIN)
         ,CONSTRUCT_SIGNAL_INNER(w_dv_torso,            ml::Vector, m_accelerometerSIN<<m_gyroscopeSIN)
 
@@ -390,20 +398,14 @@ namespace dynamicgraph
       }
 
 
-      /** Estimate the joints' torques and the 5 contact wrenches (feet, hand and body). */
-      DEFINE_SIGNAL_INNER_FUNCTION(torques_wrenches, ml::Vector)
+      /** Estimate the joints' torques from the motor model and current measurment */
+      DEFINE_SIGNAL_INNER_FUNCTION(torquesFromMotorModel, ml::Vector)
       {
-        if(s.size()!=N_JOINTS+5*6)
-          s.resize(N_JOINTS+5*6);
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
 
-        // map data from mal to eigen vectors
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
-
-        // copy current measurements, saturation and mixing weigth from mal to std vectors
+        // copy current measurements from mal to std vectors
         COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
-        COPY_VECTOR_TO_ARRAY(m_saturationCurrentSIN(iter),  m_saturationCurrent_std);
-        COPY_VECTOR_TO_ARRAY(m_wCurrentTrustSIN(iter)    ,  m_wCurrentTrust_std    );
         // filter current measurements
         m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
         // map filtered current measurements from std to Eigen vectors
@@ -418,6 +420,30 @@ namespace dynamicgraph
         COPY_VECTOR_TO_ARRAY(m_motorParameterKv_nSIN(iter), m_motorParameterKv_n_std  );
         COPY_VECTOR_TO_ARRAY(m_motorParameterKa_pSIN(iter), m_motorParameterKa_p_std  );
         COPY_VECTOR_TO_ARRAY(m_motorParameterKa_nSIN(iter), m_motorParameterKa_n_std  );
+        /// *** Get Joints Torques from gearmotors models
+        
+        for(int i=0; i<N_JOINTS; i++)
+        {
+
+                double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
+                                                                 m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
+                                                                 m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
+                                                                 m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
+                                                                 m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
+                s(i)=torqueFromCurrent;
+                //m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*torqueFromCurrent ; 
+        }
+          return s;
+      }
+      /** Estimate the joints' torques and the 5 contact wrenches (feet, hand and body). */
+      DEFINE_SIGNAL_INNER_FUNCTION(torques_wrenches, ml::Vector)
+      {
+        if(s.size()!=N_JOINTS+5*6)
+          s.resize(N_JOINTS+5*6);
+
+        // map data from mal to eigen vectors
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
 
         /// COMPUTE BASE ANGULAR VELOCITY AND ACCELERATION FROM IMU MEASUREMENTS
         if(m_useRawEncoders)
@@ -614,19 +640,7 @@ namespace dynamicgraph
 //        SEND_MSG("ddq: "+toString(m_ddq.transpose()), MSG_TYPE_DEBUG);
 //        SEND_MSG("Tau: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
         //SEND_MSG("Tau without using current: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
-        /// *** Get Joints Torques from gearmotors models and mix it with RNEA torques
-        for(int i=0; i<N_JOINTS; i++)
-            if (( m_currentMeasure_std[i] < +m_saturationCurrent_std[i] ) && 
-                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check it on the filtered data? With an eps?
-            {
-                double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
-                                                                 m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
-                                                                 m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
-                                                                 m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
-                                                                 m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
-                m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*torqueFromCurrent ; 
-            }
-        //SEND_MSG("Tau using current: "+toString(m_torques.transpose()), MSG_TYPE_DEBUG);
+
         // copy estimated joints' torques to output signal
         for(int i=0; i<N_JOINTS; i++)
           s(i) = m_torques(i+6);
@@ -859,12 +873,11 @@ namespace dynamicgraph
         return s;
       }
 
-      DEFINE_SIGNAL_OUT_FUNCTION(jointsTorques, ml::Vector)
+      DEFINE_SIGNAL_OUT_FUNCTION(jointsTorquesFromInertiaModel, ml::Vector)
       {
         getProfiler().start(PROFILE_JOINTS_TORQUES_COMPUTATION);
         {
-          sotDEBUG(15)<<"Compute jointsTorques output signal "<<iter<<endl;
-
+          sotDEBUG(15)<<"Compute jointsTorquesFromInertiaModel output signal "<<iter<<endl;
   //        bool useVelocity = velocitySIN;
           const ml::Vector &torques_wrenches = m_torques_wrenchesSINNER(iter);
           if(s.size()!=N_JOINTS)
@@ -875,7 +888,43 @@ namespace dynamicgraph
         getProfiler().stop(PROFILE_JOINTS_TORQUES_COMPUTATION);
         return s;
       }
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(jointsTorquesFromMotorModel, ml::Vector)
+      {
+          sotDEBUG(15)<<"Compute jointsTorquesFromMotorModel output signal "<<iter<<endl;
+          const ml::Vector &torques = m_torquesFromMotorModelSINNER(iter);
+          if(s.size()!=N_JOINTS)
+            s.resize(N_JOINTS);
+          for(int i=0; i<N_JOINTS; i++)
+            s(i) = torques(i);
 
+        return s;
+      }
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(jointsTorques, ml::Vector)
+      {
+          sotDEBUG(15)<<"Compute jointsTorques output signal "<<iter<<endl;
+          // copy current saturation and mixing weigth from mal to std vectors
+          COPY_VECTOR_TO_ARRAY(m_saturationCurrentSIN(iter),  m_saturationCurrent_std);
+          COPY_VECTOR_TO_ARRAY(m_wCurrentTrustSIN(iter)    ,  m_wCurrentTrust_std    );
+          
+          const ml::Vector &torques_fromMotor   = m_torquesFromMotorModelSINNER(iter);
+          const ml::Vector &torques_fromInertia = m_torques_wrenchesSINNER(iter);
+
+          if(s.size()!=N_JOINTS) s.resize(N_JOINTS);
+          for(int i=0; i<N_JOINTS; i++)
+          {
+            if (( m_currentMeasure_std[i] < +m_saturationCurrent_std[i] ) && 
+                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check it on the filtered data? With an eps?
+            {
+                s(i) =  torques_fromMotor(i)  *   m_wCurrentTrust_std[i]
+                       +torques_fromInertia(i)*(1-m_wCurrentTrust_std[i]);
+            }
+            else
+                s(i) =  torques_fromInertia(i);
+          }
+        return s;
+      }
 
       void ForceTorqueEstimator::display( std::ostream& os ) const
       {

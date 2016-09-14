@@ -55,7 +55,7 @@ namespace dynamicgraph {
       /**
         * This Entity takes as inputs the estimated joints' positions,
         * velocities, accelerations and torques and it computes the desired
-        * joints positions to send to the motors PD in order to track the
+        * current to send to the motors board in order to track the
         * desired joints torques. Most of the input of this entity are
         * computed by the entity ForceTorqueEstimator.
         *

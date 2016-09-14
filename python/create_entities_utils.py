@@ -37,7 +37,7 @@ def create_trajectory_generator(device, dt=0.001):
     plug(device.robotState,             jtg.base6d_encoders);
     jtg.init(dt);
     return jtg;
-    
+
 def create_estimator(device, dt, delay, traj_gen=None):
     estimator = ForceTorqueEstimator("estimator");
 
@@ -111,7 +111,7 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
     ctrl_manager.addCtrlMode("pos");
     ctrl_manager.addCtrlMode("torque");    
-    plug(torque_ctrl.desiredPwm,        ctrl_manager.ctrl_torque);
+    plug(torque_ctrl.desiredCurrent,        ctrl_manager.ctrl_torque);
     plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
     plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
     ctrl_manager.setCtrlMode("all", "pos");
