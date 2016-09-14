@@ -163,6 +163,9 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(robot.device.currents,     ros.currents_ros);
         plug(robot.device.forceRARM,     ros.forceRARM_ros);
         plug(robot.device.forceLARM,     ros.forceLARM_ros);
+
+
+        
 #        robot.device.after.addSignal('rosImport.trigger');
         robot.device.after.addDownsampledSignal('rosImport.trigger',30);
     if(estimator!=None):
@@ -177,7 +180,10 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
 #        ros.add('vector', 'estimator_contactWrenchLeftHand_ros',    'estimator_contactWrenchLeftHand');
 #        ros.add('vector', 'estimator_contactWrenchRightHand_ros',   'estimator_contactWrenchRightHand');
 #        ros.add('vector', 'estimator_contactWrenchBody_ros',        'estimator_contactWrenchBody');
-        ros.add('vector', 'estimator_jointsTorques_ros',            'estimator_jointsTorques');
+        ros.add('vector', 'estimator_jointsTorques_ros',                 'estimator_jointsTorques');
+        ros.add('vector', 'estimator_jointsTorquesFromInertiaModel_ros', 'estimator_jointsTorquesFromInertiaModel');
+        ros.add('vector', 'estimator_jointsTorquesFromMotorModel_ros',   'estimator_jointsTorquesFromMotorModel');
+        
 #        plug(estimator.jointsPositions,         ros.estimator_jointsPositions_ros);
         plug(estimator.jointsVelocities,        ros.estimator_jointsVelocities_ros);
         plug(estimator.jointsAccelerations,     ros.estimator_jointsAccelerations_ros);
@@ -189,7 +195,9 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
 #        plug(estimator.contactWrenchLeftHand,   ros.estimator_contactWrenchLeftHand_ros);
 #        plug(estimator.contactWrenchRightHand,  ros.estimator_contactWrenchRightHand_ros);
 #        plug(estimator.contactWrenchBody,       ros.estimator_contactWrenchBody_ros);
-        plug(estimator.jointsTorques,           ros.estimator_jointsTorques_ros);
+        plug(estimator.jointsTorques,                     ros.estimator_jointsTorques_ros);
+        plug(estimator.jointsTorquesFromInertiaModel,     ros.estimator_jointsTorquesFromInertiaModel_ros);
+        plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
         ros.add('vector', 'torque_ctrl_predictedPwm_ros',        'torque_ctrl_predictedPwm');
