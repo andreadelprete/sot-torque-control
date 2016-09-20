@@ -252,7 +252,7 @@ namespace dynamicgraph
         if(dq.size()==N_JOINTS)
             for(int i=0; i<N_JOINTS; i++)
             {
-                m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i+6), ddq(i+6),
+                m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i), ddq(i),
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
                                                          motorParameterKf_p(i), motorParameterKf_n(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
@@ -261,7 +261,7 @@ namespace dynamicgraph
         else if(dq.size()==N_JOINTS+6)
             for(int i=0; i<N_JOINTS; i++)
             {
-                m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i), ddq(i),
+                m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i+6), ddq(i+6),
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
                                                          motorParameterKf_p(i), motorParameterKf_n(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
