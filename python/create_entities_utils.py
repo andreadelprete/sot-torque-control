@@ -48,11 +48,24 @@ def create_estimator(device, dt, delay, traj_gen=None):
     plug(device.forceLLEG,      estimator.ftSensLeftFoot);
     plug(device.forceRARM,      estimator.ftSensRightHand);
     plug(device.forceLARM,      estimator.ftSensLeftHand);
+    plug(device.currents,       estimator.currentMeasure);
     if(traj_gen!=None):
         plug(traj_gen.dq,       estimator.dqRef);
         plug(traj_gen.ddq,      estimator.ddqRef);
+    estimator.wCurrentTrust.value  = tuple(30*[0.5,])
+    estimator.saturationCurrent.value = tuple(30*[5.0,])
+    estimator.motorParameterKt_p.value  = tuple(30*[1.,])
+    estimator.motorParameterKt_n.value  = tuple(30*[1.,])
+    estimator.motorParameterKf_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKf_n.value  = tuple(30*[0.,])
+    estimator.motorParameterKv_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKv_n.value  = tuple(30*[0.,])
+    estimator.motorParameterKa_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKa_n.value  = tuple(30*[0.,]) 
     estimator.init(dt,delay,delay,delay,delay,delay,True);
     
+
+
     return estimator;
         
 def create_torque_controller(device, estimator, dt=0.001):
@@ -67,7 +80,14 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.Ki.value = NJ*(0.0,);
     torque_ctrl.k_tau.value = tuple(k_tau);
     torque_ctrl.k_v.value   = tuple(k_v);
-
+    torque_ctrl.motorParameterKt_p.value  = tuple(30*[1.,])
+    torque_ctrl.motorParameterKt_n.value  = tuple(30*[1.,])
+    torque_ctrl.motorParameterKf_p.value  = tuple(30*[0.,])
+    torque_ctrl.motorParameterKf_n.value  = tuple(30*[0.,])
+    torque_ctrl.motorParameterKv_p.value  = tuple(30*[0.,])
+    torque_ctrl.motorParameterKv_n.value  = tuple(30*[0.,])
+    torque_ctrl.motorParameterKa_p.value  = tuple(30*[0.,])
+    torque_ctrl.motorParameterKa_n.value  = tuple(30*[0.,])
     torque_ctrl.init(dt);
     return torque_ctrl;
     
