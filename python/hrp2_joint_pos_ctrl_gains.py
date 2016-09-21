@@ -31,7 +31,7 @@ kp_pos[4] = 5000;
 kd_pos[4] = 0;
 # PARAMETERS OF R_ankle roll JOINT 5
 kp_pos[5] = 4000;
-kd_pos[5] = 4000; 
+kd_pos[5] = 0; 
 
 
 # PARAMETERS OF L_hip_y JOINT 6
@@ -51,7 +51,7 @@ kp_pos[10] = 5000;
 kd_pos[10] = 0;
 # PARAMETERS OF L_ankle roll JOINT 11
 kp_pos[11] = 4000;
-kd_pos[11] = 4000; 
+kd_pos[11] = 0;
 
 # PARAMTERS of torso yaw and pitch (12, 13)
 kp_pos[12] = 15000;
