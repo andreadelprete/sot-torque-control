@@ -427,6 +427,7 @@ namespace dynamicgraph {
             return false;
           m_counter_max = int(m_traj_time/m_dt);
           m_counter = int(0.5*m_counter_max);
+          m_is_accelerating = true;
           return true;
         }
 
