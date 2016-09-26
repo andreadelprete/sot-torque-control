@@ -354,7 +354,8 @@ namespace dynamicgraph {
                   const bool &computeForceSensorsOffsets);
 
         void setFTsensorOffsets(const ml::Vector& offsets);
-
+        void recomputeFTsensorOffsets();
+        
       protected:
         void sendMsg(const std::string& msg, MsgType t=MSG_TYPE_INFO, const char* file="", int line=0)
         {

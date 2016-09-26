@@ -201,6 +201,8 @@ namespace dynamicgraph
         addCommand("setFTsensorOffsets", makeCommandVoid1(*this, &ForceTorqueEstimator::setFTsensorOffsets,
                                          docCommandVoid1("Set the 4 F/T sensor offsets.",
                                                          "24-d vector [s].")));
+        addCommand("recomputeFTsensorOffsets", makeCommandVoid0(*this, &ForceTorqueEstimator::recomputeFTsensorOffsets,
+                                         docCommandVoid0("Recompute the 4 F/T sensor offsets.")));
 
         addCommand("init", makeCommandVoid7(*this, &ForceTorqueEstimator::init,
                               docCommandVoid7("Initialize the estimator.",
@@ -326,6 +328,11 @@ namespace dynamicgraph
           m_ftSensRightHand_offset(i) = m_FTsensorOffsets(12+i);
           m_ftSensLeftHand_offset(i)  = m_FTsensorOffsets(18+i);
         }
+      }
+      
+      void ForceTorqueEstimator::recomputeFTsensorOffsets()
+      {
+        m_is_first_iter = true;
       }
 
       /* --- SIGNALS ---------------------------------------------------------- */
