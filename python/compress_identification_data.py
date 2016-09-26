@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 from plot_utils import *
 from compute_estimates_from_sensors import compute_estimates_from_sensors
 
-DATA_SET = 2;
-
-FOLDER_ID = 2;
+DATA_SET = 1;
+FOLDER_ID = 1;
 EST_DELAY = 0.1;       ''' delay introduced by the estimation in seconds '''
 NJ = 30;                ''' number of joints '''
 DT = 0.001;             ''' sampling period '''
@@ -25,14 +24,14 @@ USE_FT_SENSORS = True
 JOINT_ID = np.array(range(12)); ''' IDs of the joints to save '''
 if(DATA_SET==1):
     if(FOLDER_ID==1):
-        data_folder = '../../results/20160712_170026_rsp_torque_id/';
-        JOINT_ID = np.array([16]);
+        data_folder = '../../results/20160923_165916_Joint2_id_Kt/';
+        JOINT_ID = np.array([2]);
     elif(FOLDER_ID==2):
-        data_folder = '../../results/20160712_171735_rsp_const_vel/';
-        JOINT_ID = np.array([16]);
+        data_folder = '../../results/20160923_170659_Joint2_id_Kv/';
+        JOINT_ID = np.array([2]);
     elif(FOLDER_ID==3):
-        data_folder = '../../results/20160712_182523_rsp_const_acc/';
-        JOINT_ID = np.array([16]);
+        data_folder = '../../results/20160923_173001_Joint2_id_Ka/';
+        JOINT_ID = np.array([2]);
 if(DATA_SET==2):
     if(FOLDER_ID==1):
         #~ data_folder = '../../results/20160720_132041_rsp_torque_id/';

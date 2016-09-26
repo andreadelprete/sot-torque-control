@@ -9,7 +9,7 @@ from plot_utils import plot_x_vs_y
 from plot_utils import saveCurrentFigure
 import plot_utils
 import matplotlib.pyplot as plt
-from motor_model import Motor_model
+#from motor_model import Motor_model
 '''
 motor model :
 
@@ -27,13 +27,13 @@ Kt=1.346776
 Kv_pos = 0.937689
 Kv_neg = 0.514448
 #~ i_f_pos = 1.249641
-#~ i_f_neg = -1.265535 
+#~ i_f_neg = -1.265535
 JoverKt_pos = 0.204553
 JoverKt_neg = 0.183804
 
 J = (JoverKt_pos*Kt+JoverKt_neg*Kt) * 0.5
 
-motor = Motor_model(tauf_pos, tauf_neg, Kt, Kv_pos, Kv_neg, J)
+#motor = Motor_model(tauf_pos, tauf_neg, Kt, Kv_pos, Kv_neg, J)
 #~ motor.display()
 # Test smooth tauf
 #~ dqs=[]
@@ -43,7 +43,37 @@ motor = Motor_model(tauf_pos, tauf_neg, Kt, Kv_pos, Kv_neg, J)
     #~ taufs.append(motor.get_smooth_tauf(dq))
 #~ plt.plot(dqs,taufs)
 #~ plt.show()
+Kt_p=np.array(30*(1.0,))
+Kt_n=np.array(30*(1.0,))
 
+Kf_p=np.array(30*(0.0,))
+Kf_n=np.array(30*(0.0,))
+
+Kv_p=np.array(30*(0.0,))
+Kv_n=np.array(30*(0.0,))
+
+
+# const pos
+Kt_p[2] = 0.083160
+Kt_n[2] = 0.078039
+Kf_p[2] = 0.018288 #OSEF
+Kf_n[2] = 1.018066 #OSEF
+
+# const vel
+Kv_p[2] = 0.327085
+Kv_n[2] = 0.396856
+
+Kf_p[2] = 0.132690
+Kf_n[2] = 0.813251
+
+''' Solve the least square problem:
+    solve   y=ax+b in L2 norm
+'''
+def solve1stOrderLeastSquare(x,y):
+    Q=np.vstack([np.ones(len(x)),x])
+    coef = solveLeastSquare(Q.T,y)
+    (a,b)=coef[1,0],coef[0,0]
+    return (a,b);
 
 ''' Solve the least square problem:
     minimize   || A*x-b ||^2
@@ -52,25 +82,24 @@ def solveLeastSquare(A, b):
     return np.linalg.pinv(A)*np.matrix(b).T;
 
 DATA_SET  = 1;
-FOLDER_ID = 4;
+FOLDER_ID = 1;
 DATA_FILE_NAME = 'data.npz';
 
-ZERO_VELOCITY_THRESHOLD     = 0.01
-ZERO_ACCELERATION_THRESHOLD = 1.0
-ZERO_JERK_THRESHOLD         = 2.0
+ZERO_VELOCITY_THRESHOLD     = 0.1
+ZERO_ACCELERATION_THRESHOLD = 0.1
+ZERO_JERK_THRESHOLD         = 3.0
 SHOW_THRESHOLD_EFFECT = True
-
 
 if(DATA_SET==1):
     if(FOLDER_ID==1):
-        data_folder = '../../results/20160712_170026_rsp_torque_id/';
-        JOINT_ID = 16;
+        data_folder = '../../results/20160923_165916_Joint2_id_Kt/';
+        JOINT_ID = 2;
     elif(FOLDER_ID==2):
-        data_folder = '../../results/20160712_171735_rsp_const_vel/';
-        JOINT_ID = 16;
+        data_folder = '../../results/20160923_170659_Joint2_id_Kv/';
+        JOINT_ID = 2;
     elif(FOLDER_ID==3):
-        data_folder = '../../results/20160712_182523_rsp_const_acc/';
-        JOINT_ID = 16;
+        data_folder = '../../results/20160923_135235_Joint2_id_Ka/';
+        JOINT_ID = 2;
     elif(FOLDER_ID==4):
         data_folder = '../../results/20160720_134957_rsp_friction_id_ext/';
         #~ data_folder = '../../results/20160720_143905_rsp_torque_id_noGravity/';
@@ -180,21 +209,13 @@ maskNegVel = maskNegVel[maskSaturation]
 
 #Ktau,Tau0 Identification
 if(FOLDER_ID==1):
-    #~ fs=1000
-    #~ f, Cxy = signal.coherence(tau[maskPosVel], current[maskPosVel], fs, nperseg=2048)
-    #~ plt.semilogy(f, Cxy)
-    #~ plt.xlabel('frequency [Hz]')
-    #~ plt.ylabel('Coherence')
-    #~ plt.show()
-
-    #~ fs=1000
-    #~ f, Cxy = signal.coherence(tau, current, fs, nperseg=1024)
-    #~ plt.semilogy(f, Cxy)
-    #~ plt.xlabel('frequency [Hz]')
-    #~ plt.ylabel('Coherence')
-    #~ plt.show()
-    #~ embed()
-
+    #Filter current*****************************************************
+    win = signal.hann(10)
+    filtered_current = signal.convolve(current, win, mode='same') / sum(win)
+    #~ plt.plot(current)
+    #~ plt.plot(filtered_current)
+    current = filtered_current
+    # Mask valid data***************************************************
     m = len(dq);
     # remove high velocity
     maskConstAng = (abs (dq)<ZERO_VELOCITY_THRESHOLD)
@@ -212,74 +233,58 @@ if(FOLDER_ID==1):
         plt.plot(q_const); plt.ylabel('q_const')
 
 
-    #~ Tau = Kt * I + tau0
-    Q=np.vstack([np.ones(len(current[maskConstPosAng])),current[maskConstPosAng]])
-    coef = solveLeastSquare(Q.T,tau[maskConstPosAng])
-    tau0_pos=coef[0,0]
-    Kt_pos=coef[1,0]
 
-    #~ Tau = Kt * I + tau0
-    Q=np.vstack([np.ones(len(current[maskConstNegAng])),current[maskConstNegAng]])
-    coef = solveLeastSquare(Q.T,tau[maskConstNegAng])
-    tau0_neg=coef[0,0]
-    Kt_neg=coef[1,0]
-
-    Kt=(Kt_neg+Kt_pos) / 2.0
-    print 'k_tau+[%d] = %f \t k_tau-[%d] = %f \t k_tau[%d] = %f' % (JOINT_ID,Kt_pos,JOINT_ID,Kt_neg, JOINT_ID,Kt);
-    print 'tau0+[%d] = %f \t tau0-[%d] = %f' % (JOINT_ID,tau0_pos,JOINT_ID,tau0_neg);
-
-    m = len(dq);
-    #~ plt.plot(tau); plt.ylabel('Tau')              ;plt.figure()
-    #~ plt.plot(current); plt.ylabel('Current')    ;plt.figure()
-    #~ plt.plot(dq); plt.ylabel('dq')              ;plt.figure()
-    #~ plt.plot(tau,current,'.');  plt.xlabel('Tau'); plt.ylabel('Current');
-    plt.figure()
+    
+    #~ y = a. x   +  b
+    #~ i = Kt.tau + Kf
+    #~ 
+    # Identification ***************************************************
+    y = current
+    y_label = r'$i(t)$'
+    x = tau
+    x_label =r'$\tau(t)$'
+    (a,b)=solve1stOrderLeastSquare(x[maskConstPosAng],y[maskConstPosAng])
+    Ktp=a
+    Kfp=b
+    (a,b)=solve1stOrderLeastSquare(x[maskConstNegAng],y[maskConstNegAng])
+    Ktn=a
+    Kfn=-b
+    
+    
+    # Plot *************************************************************
+    plt.figure()    
     plt.axhline(0, color='black',lw=1)
     plt.axvline(0, color='black',lw=1)
-    plt.xlabel('Tau'); plt.ylabel('Current');
+    plt.plot(x     ,y     ,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot(x[maskConstPosAng],y[maskConstPosAng],'rx',lw=3,markersize=1); 
+    plt.plot(x[maskConstNegAng],y[maskConstNegAng],'bx',lw=3,markersize=1); 
+    #plot identified lin model
+    plt.plot([min(x),max(x)],[Ktp*min(x)+Kfp ,Ktp*max(x)+Kfp],'g:',lw=3)
+    plt.plot([min(x),max(x)],[Ktn*min(x)-Kfn ,Ktn*max(x)-Kfn],'g:',lw=3)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
     
-    plt.plot([Kt_pos*min(tau[maskConstPosAng])+tau0_pos, Kt_pos*max(tau[maskConstPosAng])+tau0_pos],[min(tau[maskConstPosAng]),max(tau[maskConstPosAng])],'g-',lw=2)
-    plt.plot([Kt_neg*min(tau[maskConstNegAng])+tau0_neg, Kt_neg*max(tau[maskConstNegAng])+tau0_neg],[min(tau[maskConstNegAng]),max(tau[maskConstNegAng])],'g-',lw=2)
     
-    #~ plt.plot(tau[maskLowVel],current[maskLowVel],'.',lw=3,markersize=1,c='0.5');  
-    #~ plt.plot(tau[maskPosVel],current[maskPosVel],'rx',lw=3,markersize=1); 
-    #~ plt.plot(tau[maskNegVel],current[maskNegVel],'bx',lw=3,markersize=1); 
-    plt.plot(tau[maskLowVel],current[maskLowVel],'.',lw=3,markersize=1,c='0.5');  
-    plt.plot(tau[maskConstPosAng],current[maskConstPosAng],'rx',lw=3,markersize=1); 
-    plt.plot(tau[maskConstNegAng],current[maskConstNegAng],'bx',lw=3,markersize=1); 
-
-    plt.plot([tau0_pos,tau0_neg],[0,0],'g-',lw=6,markersize=1); 
-    
-    plt.plot(tau[maskLowVel],current[maskLowVel],'.',lw=3,markersize=1,c='0.5');  
-    
-    #~ plt.figure()
-    #~ plt.plot(tau[maskLowVel],ctrl[maskLowVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current_ctrl');
-    #~ plt.plot(tau[maskPosVel],ctrl[maskPosVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current_ctrl');
-    #~ plt.plot(tau[maskNegVel],ctrl[maskNegVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current_ctrl');
-
-    #~ plt.figure()
-    #~ current=signal.medfilt(current, 201)
-    #~ tau=signal.medfilt(tau, 201)
-    #~ 
-    #~ plt.plot(tau[maskLowVel],current[maskLowVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current');
-    #~ plt.plot(tau[maskPosVel],current[maskPosVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current');
-    #~ plt.plot(tau[maskNegVel],current[maskNegVel],'.');  plt.xlabel('Tau'); plt.ylabel('Current');
+    print 'Kt_p[%d] = %f' % (JOINT_ID,Ktp);
+    print 'Kt_n[%d] = %f' % (JOINT_ID,Ktn);
+    print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
+    print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
     plt.show()
 
 
 #Kd Identification 
 if(FOLDER_ID==2):
-    #Filter current
-    win = signal.hann(100)
+    #Filter current*****************************************************
+    win = signal.hann(10)
     filtered_current = signal.convolve(current, win, mode='same') / sum(win)
     #~ plt.plot(current)
     #~ plt.plot(filtered_current)
     current = filtered_current
 
-
+    # Mask valid data***************************************************
     m = len(dq);
     # remove high acceleration
-    maskConstVel = (abs (ddq)<ZERO_ACCELERATION_THRESHOLD)
+    maskConstVel = np.logical_and( (abs (ddq)<ZERO_ACCELERATION_THRESHOLD) , (abs (dq)>ZERO_VELOCITY_THRESHOLD))
     # erode to get only steady phases where velocity is constant 
     maskConstVel=ndimage.morphology.binary_erosion(maskConstVel,None,100)
     #~ plt.figure()
@@ -293,81 +298,54 @@ if(FOLDER_ID==2):
         dq_const=dq.copy()
         dq_const[np.logical_not(maskConstVel)]=np.nan
         plt.plot(dq_const); plt.ylabel('dq_const')
-    
-    
-    #~ i = Kv * dq + i_f
-    Q=np.vstack([np.ones(len(dq[maskConstPosVel])),dq[maskConstPosVel]])
-    coef = solveLeastSquare(Q.T,current[maskConstPosVel])
-    current_mod_ConstPosVel=Q.T*coef
-    i_f_pos=coef[0,0]
-    Kv_pos=coef[1,0]
-
-    #~ i = Kv * dq - i_f
-    Q=np.vstack([np.ones(len(dq[maskConstNegVel])),dq[maskConstNegVel]])
-    coef = solveLeastSquare(Q.T,current[maskConstNegVel])
-    current_mod_ConstNegVel=Q.T*coef
-    i_f_neg=coef[0,0]
-    Kv_neg=coef[1,0]
-    
-
-    print 'k_v+[%d] = %f \t k_v-[%d] = %f' % (JOINT_ID ,Kv_pos,JOINT_ID, Kv_neg);
-    print 'i_f+[%d] = %f \t i_f-[%d] = %f' % (JOINT_ID,i_f_pos,JOINT_ID,i_f_neg);
-
 
 
     
-    plt.figure()
+    #~ y        = a. x +  b
+    #~ i-Kt.tau = Kv.dq + Kf
+    #~ 
+    # Identification ***************************************************
+    y = current-Kt_p[JOINT_ID]*tau
+    y[maskConstPosVel] = current[maskConstPosVel]-Kt_p[JOINT_ID]*tau[maskConstPosVel]
+    y[maskConstNegVel] = current[maskConstNegVel]-Kt_n[JOINT_ID]*tau[maskConstNegVel]
+    y_label = r'$i(t)-{K_t}{\tau(t)}$'
+    x = dq
+    x_label =r'$\dot{q}(t)$'
+    (a,b)=solve1stOrderLeastSquare(x[maskConstPosVel],y[maskConstPosVel])
+    Kvp=a
+    Kfp=b
+    (a,b)=solve1stOrderLeastSquare(x[maskConstNegVel],y[maskConstNegVel])
+    Kvn=a
+    Kfn=-b
+
+    # Plot *************************************************************
+    plt.figure()    
     plt.axhline(0, color='black',lw=1)
     plt.axvline(0, color='black',lw=1)
-    plt.xlabel('Current'); plt.ylabel('dq');
-    plt.plot(current,dq,'rx',lw=3,markersize=1,c='0.5');
-    plt.plot([Kv_pos*max(dq)+i_f_pos, i_f_pos],[max(dq),0.0],'g-')
-    plt.plot([Kv_neg*min(dq)+i_f_neg, i_f_neg],[min(dq),0.0],'g-')
-    
-    plt.plot(current[maskConstPosVel],dq[maskConstPosVel],'bx' ,lw=3,markersize=1); 
-    plt.plot(current_mod_ConstPosVel ,dq[maskConstPosVel],'b--',lw=4,markersize=1);
-    plt.plot(current[maskConstNegVel],dq[maskConstNegVel],'rx' ,lw=3,markersize=1); 
-    plt.plot(current_mod_ConstNegVel ,dq[maskConstNegVel],'r--',lw=4,markersize=1); 
+    plt.plot(x     ,y     ,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot(x[maskConstPosVel],y[maskConstPosVel],'rx',lw=3,markersize=1); 
+    plt.plot(x[maskConstNegVel],y[maskConstNegVel],'bx',lw=3,markersize=1); 
+    #plot identified lin model
+    plt.plot([0.0,max(dq)],[ Kfp,Kvp*max(dq)+Kfp],'g-')
+    plt.plot([0.0,min(dq)],[-Kfn,Kvn*min(dq)-Kfn],'g-')
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
 
-    #check 
-    #k_tau+[16] = 1.403259 	 k_tau-[16] = 1.422349 	 k_tau[16] = 1.412804
-    #tau0+[16] = -4.869321 	 tau0-[16] = 0.664924
-    tau0= (4.869321 + 0.664924 )/2.0
-    Kt=1.412804
-    #k_tau+[16] = 1.342582 	 k_tau-[16] = 1.350970 	 k_tau[16] = 1.346776
-    #tau0+[16] = -2.007070 	 tau0-[16] = 1.520840
-    tau0= (2.007070 + 1.520840 )/2.0
-    Kt=1.346776
-    plt.plot([tau0 / Kt ,- tau0 / Kt], [0.0,0.0], 'ro')
-    plt.plot([-2.007070 / Kt ,1.520840 / Kt], [0.0,0.0], 'go')
-    
-    print 'error betwin friction estimation on low vel and constant vel is %f %%' % (100 * ( tau0/Kt - (i_f_pos-i_f_neg)/2 )/(tau0/Kt) )
-   
-    plt.plot(current+tau/Kt,dq,'kx' ,lw=10,markersize=1); 
-    
-    #~ plt.figure()
-    #~ plt.plot(ctrl[maskConstPosVel],dq[maskConstPosVel],'bx' ,lw=3,markersize=1); 
-    #~ plt.plot(ctrl[maskConstNegVel],dq[maskConstNegVel],'rx' ,lw=3,markersize=1); 
+    print 'Kv_p[%d] = %f' % (JOINT_ID,Kvp);
+    print 'Kv_n[%d] = %f' % (JOINT_ID,Kvn);
+    print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
+    print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
     plt.show()
 
 #J Identification
 if(FOLDER_ID==3):
-    COMPENSATE_TORQUE = True
-    Kt=1.346776
-    Kv_pos = 0.937689
-    Kv_neg = 0.514448
-    i_f_pos = 1.249641
-    i_f_neg = -1.265535 
-    JoverKt_pos = 0.204553 
-    JoverKt_neg = 0.183804 
-
-    #Filter current
-    win = signal.hann(100)
+    #Filter current*****************************************************
+    win = signal.hann(10)
     filtered_current = signal.convolve(current, win, mode='same') / sum(win)
     #~ plt.plot(current)
     #~ plt.plot(filtered_current)
     current = filtered_current
-
+    # Mask valid data***************************************************
     m = len(dq);
     dt=0.001
     #~ # remove high jerk
@@ -375,8 +353,6 @@ if(FOLDER_ID==3):
     maskConstAcc = (abs (dddq)<ZERO_JERK_THRESHOLD)
     #~ # erode to get only steady phases where acceleration is constant 
     maskConstAcc=ndimage.morphology.binary_erosion(maskConstAcc,None,100)
-    plt.figure()
-
     maskConstPosAcc=np.logical_and( maskConstAcc ,maskPosVel )
     maskConstNegAcc=np.logical_and( maskConstAcc ,maskNegVel )
     
@@ -388,29 +364,43 @@ if(FOLDER_ID==3):
         plt.plot(ddq_const); plt.ylabel('ddq_const')
         plt.show()
 
-
-    #~ i(t) - Kd/Kt v(t) = J/Kt * ddq + b
-    Q=np.vstack([np.ones(len(ddq[maskConstPosAcc])),ddq[maskConstPosAcc]])
-    if COMPENSATE_TORQUE == True :
-        coef = solveLeastSquare(Q.T,current[maskConstPosAcc]-(Kv_pos)*dq[maskConstPosAcc]-tau[maskConstPosAcc]/Kt)
-    else :
-        coef = solveLeastSquare(Q.T,current[maskConstPosAcc]-(Kv_pos)*dq[maskConstPosAcc])
-    b_pos=coef[0,0]
-    JoverKt_pos=coef[1,0]
-
-    #~ i(t) - Kd/Kt v(t)  = J/Kt * ddq + b
-    Q=np.vstack([np.ones(len(ddq[maskConstNegAcc])),ddq[maskConstNegAcc]])
-    if COMPENSATE_TORQUE == True :
-        coef = solveLeastSquare(Q.T,current[maskConstNegAcc]-(Kv_neg)*dq[maskConstNegAcc]-tau[maskConstNegAcc]/Kt) 
-    else :
-        coef = solveLeastSquare(Q.T,current[maskConstNegAcc]-(Kv_neg)*dq[maskConstNegAcc])
-        
-    b_neg=coef[0,0]
-    JoverKt_neg=coef[1,0]
+    #~ y              = a. x   +  b
+    #~ i-Kt.tau-Kv.dq = Ka.ddq +  Kf
+    #~ 
+    # Identification ***************************************************
+    y = current-Kt_p[JOINT_ID]*tau - Kv_p[JOINT_ID]*dq
+    y[maskConstPosAcc] = current[maskConstPosAcc]-Kt_p[JOINT_ID]*tau[maskConstPosAcc] - Kv_p[JOINT_ID]*dq[maskConstPosAcc]
+    y[maskConstNegAcc] = current[maskConstNegAcc]-Kt_p[JOINT_ID]*tau[maskConstNegAcc] - Kv_p[JOINT_ID]*dq[maskConstNegAcc]
+    y_label = r'$i(t)-{K_t}{\tau(t)}-{K_v}{\dot{q}(t)}$'
+    x = ddq
+    x_label = r'$\ddot{q}(t)$'
+    (a,b)=solve1stOrderLeastSquare(x[maskConstPosAcc],y[maskConstPosAcc])
+    Kap=a
+    Kfp=b
+    (a,b)=solve1stOrderLeastSquare(x[maskConstNegAcc],y[maskConstNegAcc])
+    Kan=a
+    Kfn=-b
     
-    print ' J/Kt+[%d] = %f ' % (JOINT_ID ,JoverKt_pos);
-    print ' J/Kt-[%d] = %f ' % (JOINT_ID, JoverKt_neg);
+    # Plot *************************************************************
+    plt.figure()    
+    plt.axhline(0, color='black',lw=1)
+    plt.axvline(0, color='black',lw=1)
+    plt.plot(x     ,y     ,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot(x[maskConstPosAcc],y[maskConstPosAcc],'rx',lw=3,markersize=1); 
+    plt.plot(x[maskConstNegAcc],y[maskConstNegAcc],'bx',lw=3,markersize=1); 
+    #plot identified lin model
+    plt.plot([min(x),max(x)],[Kap*min(x)+Kfp ,Kap*max(x)+Kfp],'g:',lw=3)
+    plt.plot([min(x),max(x)],[Kan*min(x)-Kfn ,Kan*max(x)-Kfn],'g:',lw=3)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
 
+    print 'Ka_p[%d] = %f' % (JOINT_ID,Kap);
+    print 'Ka_n[%d] = %f' % (JOINT_ID,Kan);
+    print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
+    print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    plt.show()
+
+    embed()
     
     #~ plt.figure()
     #~ plt.plot(dq); plt.ylabel('dq')

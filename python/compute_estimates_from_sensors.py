@@ -7,16 +7,17 @@ and torques starting from the following sensor data: f/t sensors, encoders, acce
 @author: adelpret
 """
 
+USE_ROBOT_VIEWER = False;
+PLOT_SENSOR_DATA = False;
+
 from dynamic_graph.sot.torque_control.force_torque_estimator import ForceTorqueEstimator
 from load_hrpsys_log import load_hrpsys_log_astate
 import numpy as np
 import plot_utils as plut
 import matplotlib.pyplot as plt
-import robotviewer  # start robotviewer from bash with 'robotviewer -sXML-RPC'.
-
-USE_ROBOT_VIEWER = False;
-PLOT_SENSOR_DATA = False;
-
+if USE_ROBOT_VIEWER:
+    import robotviewer  # start robotviewer from bash with 'robotviewer -sXML-RPC'.
+    
 def compute_delta_q_components(enc, delta_q, dq, delta_q_ff, qRef, dqRef, k_tau, k_v, k_p, k_s, k_d):
     NJ = enc.shape[1];
     N = enc.shape[0];
@@ -42,7 +43,7 @@ def set_sensor_data_in_estimator(estimator, sensor_data):
     estimator.ftSensLeftHand.value  = tuple(sensor_data['forceLA']);
     
 
-def compute_estimates_from_sensors(sensors, delay, ftSensorOffsets=None):
+def compute_estimates_from_sensors(sensors, delay, ftSensorOffsets=None, USE_FT_SENSORS=True):
     NJ = 30;                                        # number of joints
     m = sensors['time'].shape[0];                           # number of time steps
     dt = float(np.mean(sensors['time'][1:]-sensors['time'][:-1])); # sampling period
@@ -51,17 +52,33 @@ def compute_estimates_from_sensors(sensors, delay, ftSensorOffsets=None):
     estimator = ForceTorqueEstimator("estimator"+str(np.random.rand()));
     estimator.dqRef.value = NJ*(0.0,);
     estimator.ddqRef.value = NJ*(0.0,);
+    #Only use inertia model (not current) to estimate torques.
+    estimator.wCurrentTrust.value     = NJ*(0.0,);
+    estimator.currentMeasure.value    = NJ*(0.0,);
+    estimator.currentMeasure.value    = NJ*(0.0,);
+    estimator.saturationCurrent.value = NJ*(0.0,);
+    estimator.motorParameterKt_p.value  = tuple(30*[1.,])
+    estimator.motorParameterKt_n.value  = tuple(30*[1.,])
+    estimator.motorParameterKf_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKf_n.value  = tuple(30*[0.,])
+    estimator.motorParameterKv_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKv_n.value  = tuple(30*[0.,])
+    estimator.motorParameterKa_p.value  = tuple(30*[0.,])
+    estimator.motorParameterKa_n.value  = tuple(30*[0.,]) 
+    
     set_sensor_data_in_estimator(estimator, sensors[0]);
     print "Time step: %f" % dt;
     print "Estimation delay: %f" % delay;
     if(ftSensorOffsets==None):
-        estimator.init(dt,delay,delay,delay,delay,True);
+        estimator.init(dt,delay,delay,delay,delay,delay,True);
     else:
-        estimator.init(dt,delay,delay,delay,delay,False);
+        estimator.init(dt,delay,delay,delay,delay,delay,False);
         estimator.setFTsensorOffsets(tuple(ftSensorOffsets));
     estimator.setUseRawEncoders(False);
     estimator.setUseRefJointVel(False);
     estimator.setUseRefJointAcc(False);
+    estimator.setUseFTsensors(USE_FT_SENSORS);
+
     
     torques = np.zeros((m,NJ));
     dq      = np.zeros((m,NJ));
