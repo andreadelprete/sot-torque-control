@@ -7,6 +7,22 @@ Created on Mon Feb  9 13:55:16 2015
 from numpy import zeros as zeros
 
 NJ = 30;
+### New motor parameters with current measurment ###
+Kt_p=zeros(NJ);
+Kt_n=zeros(NJ);
+Kf_p=zeros(NJ);
+Kf_n=zeros(NJ);
+Kv_p=zeros(NJ);
+Kv_n=zeros(NJ);
+Ka_p=zeros(NJ);
+Ka_n=zeros(NJ);
+# PARAMETERS OF R_hip_p JOINT 2
+Kt_p[2]=0.083642
+Kt_n[2]=0.079290
+Kf_p[2]=0.5
+Kf_n[2]=1.0
+
+
 k_p = zeros(NJ);    # torque control proportional gains
 k_tau = zeros(NJ);  # motor torque constant
 k_v   = zeros(NJ);  # viscous friction coefficient
