@@ -25,7 +25,7 @@ namespace dynamicgraph {
             assert(Ka_p>=0.0 && "Ka_p should be >= 0");
             assert(Ka_n>=0.0 && "Ka_n should be >= 0");
 
-            double signDq = this->smoothSign(dq,0.8); //in [-1;1]
+            double signDq = this->smoothSign(dq,0.1); //in [-1;1]
             double current;
 
             //Smoothly set Coefficients according to velocity sign
@@ -54,7 +54,7 @@ namespace dynamicgraph {
             assert(Ka_p>=0.0 && "Ka_p should be >= 0");
             assert(Ka_n>=0.0 && "Ka_n should be >= 0");
             
-            double signDq = this->smoothSign(dq,0.8); //in [-1;1]
+            double signDq = this->smoothSign(dq,0.1); //in [-1;1]
             double torque;
 
             //Smoothly set Coefficients according to velocity sign
