@@ -52,20 +52,20 @@ def create_estimator(device, dt, delay, traj_gen=None):
     if(traj_gen!=None):
         plug(traj_gen.dq,       estimator.dqRef);
         plug(traj_gen.ddq,      estimator.ddqRef);
-    estimator.wCurrentTrust.value  = tuple(30*[0.5,])
+    estimator.wCurrentTrust.value     = tuple(30*[0.5,])
     estimator.saturationCurrent.value = tuple(30*[5.0,])
-    estimator.motorParameterKt_p.value  = tuple(30*[1.,])
-    estimator.motorParameterKt_n.value  = tuple(30*[1.,])
-    estimator.motorParameterKf_p.value  = tuple(30*[0.,])
-    estimator.motorParameterKf_n.value  = tuple(30*[0.,])
-    estimator.motorParameterKv_p.value  = tuple(30*[0.,])
-    estimator.motorParameterKv_n.value  = tuple(30*[0.,])
-    estimator.motorParameterKa_p.value  = tuple(30*[0.,])
-    estimator.motorParameterKa_n.value  = tuple(30*[0.,]) 
-    estimator.init(dt,delay,delay,delay,delay,delay,True);
+    estimator.motorParameterKt_p.value  = tuple(Kt_p)
+    estimator.motorParameterKt_n.value  = tuple(Kt_n)
+    estimator.motorParameterKf_p.value  = tuple(Kf_p)
+    estimator.motorParameterKf_n.value  = tuple(Kf_n)
+    estimator.motorParameterKv_p.value  = tuple(Kv_p)
+    estimator.motorParameterKv_n.value  = tuple(Kv_n)
+    estimator.motorParameterKa_p.value  = tuple(Ka_p)
+    estimator.motorParameterKa_n.value  = tuple(Ka_n)
     
 
-
+    estimator.init(dt,delay,delay,delay,delay,delay,True);
+    
     return estimator;
         
 def create_torque_controller(device, estimator, dt=0.001):
@@ -80,14 +80,16 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.Ki.value = NJ*(0.0,);
     torque_ctrl.k_tau.value = tuple(k_tau);
     torque_ctrl.k_v.value   = tuple(k_v);
-    torque_ctrl.motorParameterKt_p.value  = tuple(30*[1.,])
-    torque_ctrl.motorParameterKt_n.value  = tuple(30*[1.,])
-    torque_ctrl.motorParameterKf_p.value  = tuple(30*[0.,])
-    torque_ctrl.motorParameterKf_n.value  = tuple(30*[0.,])
-    torque_ctrl.motorParameterKv_p.value  = tuple(30*[0.,])
-    torque_ctrl.motorParameterKv_n.value  = tuple(30*[0.,])
-    torque_ctrl.motorParameterKa_p.value  = tuple(30*[0.,])
-    torque_ctrl.motorParameterKa_n.value  = tuple(30*[0.,])
+    
+
+    torque_ctrl.motorParameterKt_p.value  = tuple(Kt_p)
+    torque_ctrl.motorParameterKt_n.value  = tuple(Kt_n)
+    torque_ctrl.motorParameterKf_p.value  = tuple(Kf_p)
+    torque_ctrl.motorParameterKf_n.value  = tuple(Kf_n)
+    torque_ctrl.motorParameterKv_p.value  = tuple(Kv_p)
+    torque_ctrl.motorParameterKv_n.value  = tuple(Kv_n)
+    torque_ctrl.motorParameterKa_p.value  = tuple(Ka_p)
+    torque_ctrl.motorParameterKa_n.value  = tuple(Ka_n)
     torque_ctrl.init(dt);
     return torque_ctrl;
     
