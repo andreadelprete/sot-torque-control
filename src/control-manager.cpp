@@ -50,6 +50,7 @@ namespace dynamicgraph
       /* ------------------------------------------------------------------- */
       /* --- CONSTRUCTION -------------------------------------------------- */
       /* ------------------------------------------------------------------- */
+      //to do rename 'pwm' to 'current'
       ControlManager::
           ControlManager(const std::string& name)
             : Entity(name)
@@ -191,7 +192,7 @@ namespace dynamicgraph
           stringstream ss;
           for(unsigned int i=0; i<N_JOINTS; i++)
           {
-            s(i) = pwmDes(i);
+            s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL;
 
             if(fabs(tau(i)) > tau_max(i))
             {
@@ -199,7 +200,7 @@ namespace dynamicgraph
               SEND_MSG("Estimated torque "+toString(tau(i))+" > max torque "+toString(tau_max(i))+
                        " for joint "+JointUtil::get_name_from_id(i), MSG_TYPE_ERROR);
               SEND_MSG(", but predicted torque "+toString(tau_predicted(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
-              SEND_MSG(", and pwm "+toString(pwmDes(i))+" < "+toString(m_maxPwm), MSG_TYPE_ERROR);
+              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
               break;
             }
 
@@ -209,7 +210,7 @@ namespace dynamicgraph
               SEND_MSG("Predicted torque "+toString(tau_predicted(i))+" > max torque "+toString(tau_max(i))+
                        " for joint "+JointUtil::get_name_from_id(i), MSG_TYPE_ERROR);
               SEND_MSG(", but estimated torque "+toString(tau(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
-              SEND_MSG(", and pwm "+toString(pwmDes(i))+" < "+toString(m_maxPwm), MSG_TYPE_ERROR);
+              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
               break;
             }
 
@@ -223,8 +224,8 @@ namespace dynamicgraph
             if(fabs(pwmDes(i)) > m_maxPwm)
             {
               m_maxPwm_violated = true;
-              SEND_MSG("Joint "+JointUtil::get_name_from_id(i)+" desired pwm is too large: "+
-                       toString(pwmDes(i))+" > "+toString(m_maxPwm), MSG_TYPE_ERROR);
+              SEND_MSG("Joint "+JointUtil::get_name_from_id(i)+" desired current is too large: "+
+                       toString(pwmDes(i))+"A > "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
               SEND_MSG(", but estimated torque "+toString(tau(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
               SEND_MSG(", and predicted torque "+toString(tau_predicted(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
               break;

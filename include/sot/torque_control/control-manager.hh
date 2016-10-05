@@ -56,6 +56,10 @@ namespace dynamicgraph {
 /// Number of time step to transition from one ctrl mode to another
 #define CTRL_MODE_TRANSITION_TIME_STEP 1000.0
 
+///factor to go from a [-20.0 ; 20.0] Ampers value 
+///             to the [-2048 ; 2048] 12bit DAC register
+#define FROM_CURRENT_TO_12_BIT_CTRL 102.4
+
       class CtrlMode
       {
       public:
@@ -94,7 +98,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(max_pwm,          ml::Vector);  /// max PWM allows before stopping the controller
         DECLARE_SIGNAL_IN(max_tau,          ml::Vector);  /// max torque allowed before stopping the controller
         DECLARE_SIGNAL_OUT(pwmDes,          ml::Vector);
-        DECLARE_SIGNAL_OUT(pwmDesSafe,      ml::Vector);  /// same as pwmDes when everything is fine, 0 otherwise
+        DECLARE_SIGNAL_OUT(pwmDesSafe,      ml::Vector);  /// same as pwmDes when everything is fine, 0 otherwise //todo change since pwmDes is now the desired current and pwmDesSafe is the DAC 
 
         /* --- COMMANDS --- */
         void addCtrlMode(const std::string& name);

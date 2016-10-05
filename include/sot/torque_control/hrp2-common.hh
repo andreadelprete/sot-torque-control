@@ -51,7 +51,7 @@ namespace dynamicgraph {
 
 const double DEFAULT_MAX_DELTA_Q = 0.1; /// max joint position tracking error [rad]
 
-const double DEFAULT_MAX_PWM = 500;     /// max PWM (integer in [-2048, 2048])
+const double DEFAULT_MAX_PWM = 5;     /// max PWM (double in [-20 Amp, 20 Amp]) //to do rename 'pwm' to 'current'
 
       // Information on the location of the IMU and F/T sensors of HRP-2
       // copied from the urdf file (in stacks/hrp2/hrp2_14_description/urdf):
