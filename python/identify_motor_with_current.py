@@ -9,40 +9,22 @@ from plot_utils import plot_x_vs_y
 from plot_utils import saveCurrentFigure
 import plot_utils
 import matplotlib.pyplot as plt
-#from motor_model import Motor_model
+from motor_model import Motor_model
 '''
 motor model :
-
-Kt*i(t) = J*a(t) + Kd * v(t) + Tauf + Tau
-i(t) = J/Kt*a(t) + Kd/Kt * v(t) + Tauf/Kt + Tau/Kt
-Tau = Kt*i(t) - J*a(t) - Kd * v(t) - Tauf
+i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
 '''
 
-tauf_pos = 2.007070
-tauf_neg = -1.520840
-
-#~ tauf_pos = 7
-#~ tauf_neg = -7.0
-Kt=1.346776
-Kv_pos = 0.937689
-Kv_neg = 0.514448
-#~ i_f_pos = 1.249641
-#~ i_f_neg = -1.265535
-JoverKt_pos = 0.204553
-JoverKt_neg = 0.183804
-
-J = (JoverKt_pos*Kt+JoverKt_neg*Kt) * 0.5
-
-#motor = Motor_model(tauf_pos, tauf_neg, Kt, Kv_pos, Kv_neg, J)
 #~ motor.display()
-# Test smooth tauf
+#~ # Test smooth tauf
 #~ dqs=[]
 #~ taufs=[]
 #~ for dq in np.linspace(-1,1,1000):
     #~ dqs.append(dq)
-    #~ taufs.append(motor.get_smooth_tauf(dq))
+    #~ taufs.append(motor.getCurrent(dq))
 #~ plt.plot(dqs,taufs)
 #~ plt.show()
+
 Kt_p=np.array(30*(1.0,))
 Kt_n=np.array(30*(1.0,))
 
@@ -52,6 +34,8 @@ Kf_n=np.array(30*(0.0,))
 Kv_p=np.array(30*(0.0,))
 Kv_n=np.array(30*(0.0,))
 
+Ka_p=np.array(30*(0.0,))
+Ka_n=np.array(30*(0.0,))
 
 # const pos
 Kt_p[2] = 0.083160
@@ -65,6 +49,17 @@ Kv_n[2] = 0.396856
 
 Kf_p[2] = 0.132690
 Kf_n[2] = 0.813251
+
+# const acc
+Ka_p[2] = 0.0
+Ka_n[2] = 0.0
+
+
+motor = Motor_model(Kt_p[2], Kt_n[2], 
+                    Kf_p[2], Kf_n[2],
+                    Kv_p[2], Kv_n[2],
+                    Ka_p[2], Ka_n[2],0.1)
+
 
 ''' Solve the least square problem:
     solve   y=ax+b in L2 norm
@@ -82,7 +77,7 @@ def solveLeastSquare(A, b):
     return np.linalg.pinv(A)*np.matrix(b).T;
 
 DATA_SET  = 1;
-FOLDER_ID = 1;
+FOLDER_ID = 2;
 DATA_FILE_NAME = 'data.npz';
 
 ZERO_VELOCITY_THRESHOLD     = 0.1
@@ -190,7 +185,6 @@ else:
     ctrl = np.squeeze(data['ctrl'][:,JOINT_ID]);
     
 maskSaturation=np.logical_and( (current>-9.5) , (current<9.5) )
-maskLowVel=np.logical_and( (dq>-0.001) , (dq<0.001) )
 maskPosVel=(dq> 0.001)
 maskNegVel=(dq<-0.001)
 
@@ -203,7 +197,6 @@ tau     = tau    [maskSaturation];
 ctrl    = ctrl   [maskSaturation];
 current = current[maskSaturation];
 
-maskLowVel = maskLowVel[maskSaturation]
 maskPosVel = maskPosVel[maskSaturation]
 maskNegVel = maskNegVel[maskSaturation]
 
@@ -211,7 +204,7 @@ maskNegVel = maskNegVel[maskSaturation]
 if(FOLDER_ID==1):
     #Filter current*****************************************************
     win = signal.hann(10)
-    filtered_current = signal.convolve(current, win, mode='same') / sum(win)
+    filtered_current = signal.convolve(current, win, mode='same')/sum(win)
     #~ plt.plot(current)
     #~ plt.plot(filtered_current)
     current = filtered_current
@@ -231,10 +224,6 @@ if(FOLDER_ID==1):
         q_const=enc.copy()
         q_const[np.logical_not(maskConstAng)]=np.nan
         plt.plot(q_const); plt.ylabel('q_const')
-
-
-
-    
     #~ y = a. x   +  b
     #~ i = Kt.tau + Kf
     #~ 
@@ -250,7 +239,6 @@ if(FOLDER_ID==1):
     Ktn=a
     Kfn=-b
     
-    
     # Plot *************************************************************
     plt.figure()    
     plt.axhline(0, color='black',lw=1)
@@ -264,13 +252,11 @@ if(FOLDER_ID==1):
     plt.ylabel(y_label)
     plt.xlabel(x_label)
     
-    
     print 'Kt_p[%d] = %f' % (JOINT_ID,Ktp);
     print 'Kt_n[%d] = %f' % (JOINT_ID,Ktn);
     print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
     plt.show()
-
 
 #Kd Identification 
 if(FOLDER_ID==2):
@@ -299,8 +285,6 @@ if(FOLDER_ID==2):
         dq_const[np.logical_not(maskConstVel)]=np.nan
         plt.plot(dq_const); plt.ylabel('dq_const')
 
-
-    
     #~ y        = a. x +  b
     #~ i-Kt.tau = Kv.dq + Kf
     #~ 
@@ -388,6 +372,7 @@ if(FOLDER_ID==3):
     plt.plot(x     ,y     ,'.' ,lw=3,markersize=1,c='0.5');  
     plt.plot(x[maskConstPosAcc],y[maskConstPosAcc],'rx',lw=3,markersize=1); 
     plt.plot(x[maskConstNegAcc],y[maskConstNegAcc],'bx',lw=3,markersize=1); 
+    
     #plot identified lin model
     plt.plot([min(x),max(x)],[Kap*min(x)+Kfp ,Kap*max(x)+Kfp],'g:',lw=3)
     plt.plot([min(x),max(x)],[Kan*min(x)-Kfn ,Kan*max(x)-Kfn],'g:',lw=3)
@@ -400,66 +385,19 @@ if(FOLDER_ID==3):
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
     plt.show()
 
-    embed()
-    
-    #~ plt.figure()
-    #~ plt.plot(dq); plt.ylabel('dq')
-    #~ dq_const=dq.copy()
-    #~ dq_const[np.logical_not(maskConstVel)]=np.nan
-    #~ plt.plot(dq_const); plt.ylabel('dq_const')
-    
-    plt.figure()
-    plt.axhline(0, color='black',lw=1)
-    plt.axvline(0, color='black',lw=1)
-    if COMPENSATE_TORQUE == True :
-        plt.title(r'$i(t)-\frac{K_d}{K_t}\omega(t) = \frac{J}{K_t}a(t)+\frac{\tau(t)}{K_t}+b$')
-        plt.xlabel(r'$ i(t)-\frac{Kd}{Kt}\omega(t)-\frac{\tau(t)}{K_t} $')
-    else :
-        plt.title(r'$i(t)-\frac{K_d}{K_t}\omega(t) = \frac{J}{K_t}a(t)+b$')
-        plt.xlabel(r'$ i(t)-\frac{Kd}{Kt}\omega(t) $');
-    plt.ylabel(r'$ acc(t)$');
-    #~ plt.plot(current,dq,'rx',lw=3,markersize=1,c='0.5');
-    id1=542
-    id2=5245
-    plt.plot([JoverKt_pos*max(ddq)+b_pos, 
-              JoverKt_pos*min(ddq)+b_pos],
-                         [max(ddq),
-                          min(ddq)],'g-')
-
-    plt.plot([JoverKt_neg*max(ddq)+b_neg, 
-              JoverKt_neg*min(ddq)+b_neg],
-                         [max(ddq),
-                          min(ddq)],'g-')
-    plt.plot(current[maskPosVel]-Kv_pos*dq[maskPosVel],ddq[maskPosVel],'rx',lw=3,markersize=1,c='0.5');
-    plt.plot(current[maskNegVel]-Kv_neg*dq[maskNegVel],ddq[maskNegVel],'rx',lw=3,markersize=1,c='0.5');
-    plt.plot(current[maskConstPosAcc]-(Kv_pos)*dq[maskConstPosAcc],ddq[maskConstPosAcc],'rx' ,lw=3,markersize=1); 
-    plt.plot(current[maskConstNegAcc]-(Kv_neg)*dq[maskConstNegAcc],ddq[maskConstNegAcc],'bx' ,lw=3,markersize=1); 
-
-
-    #with torque compensation:
-    plt.plot(current[maskConstPosAcc]-Kv_pos*dq[maskConstPosAcc]-tau[maskConstPosAcc]/Kt,ddq[maskConstPosAcc],'rx',lw=1,markersize=1);
-    plt.plot(current[maskConstNegAcc]-Kv_neg*dq[maskConstNegAcc]-tau[maskConstNegAcc]/Kt,ddq[maskConstNegAcc],'bx',lw=1,markersize=1);
-
-
-    plt.figure()
-    plt.plot(tau)
-    plt.plot(dq)
-    
-    plt.show()
-
 #model vs measurement
 if(FOLDER_ID>0):
     tau_motor=np.zeros(len(tau))
     i_motor=np.zeros(len(current))
     
     for idx in range(len(tau)):
-        tau_motor[idx]=motor.get_tau    (dq[idx],ddq[idx],current[idx])
-        i_motor[idx]  =motor.get_current(dq[idx],ddq[idx],tau[idx])
+        tau_motor[idx]=motor.getTorque    (current[idx], dq[idx], ddq[idx])
+        i_motor[idx]  =motor.getCurrent   (tau[idx],     dq[idx], ddq[idx])
         
-    #~ plt.figure()
-    #~ plt.plot(tau)
-    #~ plt.plot(tau_motor)
-    #~ plt.legend(['Estimated torque with dynamic model','Estimated torque with motor model'])
+    plt.figure()
+    plt.plot(tau)
+    plt.plot(tau_motor)
+    plt.legend(['Estimated torque with dynamic model','Estimated torque with motor model'])
     
     plt.figure()
     plt.plot(current)
