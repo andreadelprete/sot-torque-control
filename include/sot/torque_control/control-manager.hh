@@ -60,6 +60,9 @@ namespace dynamicgraph {
 ///             to the [-2048 ; 2048] 12bit DAC register
 #define FROM_CURRENT_TO_12_BIT_CTRL 102.4
 
+///offset to apply to compensate motor driver dead-zone (+-0.2V -> +-0.4A -> "+-(int)40.96) 
+#define DEAD_ZONE_OFFSET 40
+
       class CtrlMode
       {
       public:

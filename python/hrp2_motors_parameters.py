@@ -8,8 +8,8 @@ from numpy import zeros as zeros
 
 NJ = 30;
 ### New motor parameters with current measurment ###
-Kt_p=zeros(NJ);
-Kt_n=zeros(NJ);
+Kt_p=zeros(NJ)+1.0;
+Kt_n=zeros(NJ)+1.0;
 Kf_p=zeros(NJ);
 Kf_n=zeros(NJ);
 Kv_p=zeros(NJ);

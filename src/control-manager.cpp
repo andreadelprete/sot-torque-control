@@ -192,7 +192,15 @@ namespace dynamicgraph
           stringstream ss;
           for(unsigned int i=0; i<N_JOINTS; i++)
           {
-            s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL;
+            if (pwmDes(i) > 0)
+              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL + DEAD_ZONE_OFFSET;
+            else
+            {
+              if (pwmDes(i) < 0)
+                s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL - DEAD_ZONE_OFFSET;
+              else 
+                s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL;
+            } 
 
             if(fabs(tau(i)) > tau_max(i))
             {
