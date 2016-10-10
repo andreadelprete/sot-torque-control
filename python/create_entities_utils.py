@@ -140,6 +140,25 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     ctrl_manager.init(dt);
     return ctrl_manager;
     
+def create_ctrl_manager_noTorqueControl(device, torque_ctrl, pos_ctrl, estimator, dt=0.001):
+    ctrl_manager = ControlManager("ctrl_man");
+    plug(device.robotState,                  ctrl_manager.base6d_encoders);
+
+    plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
+    plug(estimator.jointsTorques,            ctrl_manager.tau);
+    ctrl_manager.max_tau.value = tuple(tau_max);
+    
+    plug(ctrl_manager.pwmDesSafe,       device.control);
+    plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
+    ctrl_manager.addCtrlMode("pos");
+    #ctrl_manager.addCtrlMode("torque");    
+    #plug(torque_ctrl.desiredCurrent,        ctrl_manager.ctrl_torque);
+    plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
+    #plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
+    ctrl_manager.setCtrlMode("all", "pos");
+    ctrl_manager.init(dt);
+    return ctrl_manager;
+
 def create_admittance_ctrl(device, estimator, ctrl_manager, traj_gen, dt=0.001):
     admit_ctrl = AdmittanceController("adm_ctrl");
     plug(device.robotState,             admit_ctrl.base6d_encoders);
@@ -380,7 +399,7 @@ def go_to_zero_position(traj_gen):
     traj_gen.moveJoint('re' ,0.0,10.0) #19
     traj_gen.moveJoint('rwy',0.0,10.0) #20
     traj_gen.moveJoint('rwp',0.0,10.0) #21
-    traj_gen.moveJoint('rh' ,0.0,10.0) #22
+    traj_gen.moveJoint('rh' ,0.3,10.0) #22
 
     # LARM TO 0 **********************
     traj_gen.moveJoint('lsp',0.0,10.0) #23
@@ -389,6 +408,6 @@ def go_to_zero_position(traj_gen):
     traj_gen.moveJoint('le' ,0.0,10.0) #26
     traj_gen.moveJoint('lwy',0.0,10.0) #27
     traj_gen.moveJoint('lwp',0.0,10.0) #28
-    traj_gen.moveJoint('lh' ,0.0,10.0) #29
+    traj_gen.moveJoint('lh' ,0.3,10.0) #29
 
 
