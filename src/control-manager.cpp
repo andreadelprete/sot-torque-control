@@ -32,9 +32,9 @@ namespace dynamicgraph
       using namespace dg::command;
       using namespace std;
       using namespace dg::sot::torque_control;
-
-#define PROFILE_PWM_DESIRED_COMPUTATION       "Control manager"
-#define PROFILE_DYNAMIC_GRAPH_PERIOD          "Control period"
+//Size to be aligned                          "-------------------------------------------------------"
+#define PROFILE_PWM_DESIRED_COMPUTATION       "Control manager                                        "
+#define PROFILE_DYNAMIC_GRAPH_PERIOD          "Control period                                         "
 
 #define SAFETY_SIGNALS m_max_pwmSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN
 #define INPUT_SIGNALS  m_base6d_encodersSIN << SAFETY_SIGNALS
@@ -97,6 +97,10 @@ namespace dynamicgraph
                    makeCommandVoid1(*this, &ControlManager::getCtrlMode,
                                     docCommandVoid1("Get the control mode of a joint.",
                                                     "(string) joint name")));
+
+        addCommand("resetProfiler",
+                   makeCommandVoid0(*this, &ControlManager::resetProfiler,
+                                    docCommandVoid0("Reset the statistics computed by the profiler (print this entity to see them).")));
       }
 
       void ControlManager::init(const double& dt)
@@ -346,6 +350,11 @@ namespace dynamicgraph
         SEND_MSG("The control mode of joint "+jointName+" is "+m_jointCtrlModes_current[i].name,MSG_TYPE_INFO);
       }
 
+      void ControlManager::resetProfiler()
+      {
+        getProfiler().reset_all();
+      }
+
       /* --- PROTECTED MEMBER METHODS ---------------------------------------------------------- */
 
       void ControlManager::updateJointCtrlModesOutputSignal()
@@ -419,6 +428,7 @@ namespace dynamicgraph
       /* ------------------------------------------------------------------- */
       /* --- ENTITY -------------------------------------------------------- */
       /* ------------------------------------------------------------------- */
+
 
       void ControlManager::display(std::ostream& os) const
       {

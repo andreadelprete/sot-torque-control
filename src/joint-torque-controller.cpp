@@ -95,9 +95,9 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(tauFF,                  ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(tauFB,                  ml::Vector)
-        ,CONSTRUCT_SIGNAL_OUT(desiredCurrent,        ml::Vector, ESTIMATOR_INPUT_SIGNALS <<
+        ,CONSTRUCT_SIGNAL_OUT(desiredCurrent,        ml::Vector,   ESTIMATOR_INPUT_SIGNALS <<
                                                                    CONTROL_INPUT_SIGNALS <<
-                                                                   MODEL_INPUT_SIGNALS)
+                                                                   MODEL_INPUT_SIGNALS )
         ,CONSTRUCT_SIGNAL_OUT(predictedJointsTorques,  ml::Vector, m_pwmSIN<<
                                                                    m_jointsVelocitiesSIN<<
                                                                    m_k_tauSIN<<

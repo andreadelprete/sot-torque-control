@@ -31,13 +31,15 @@ namespace dynamicgraph
 #define FORCE_TORQUE_SENSORS_SIGNALS m_ftSensLeftFootSIN << m_ftSensRightFootSIN \
                                      << m_ftSensLeftHandSIN << m_ftSensRightHandSIN
 
+#define MOTOR_PARAMETER_SIGNALS m_motorParameterKt_pSIN << m_motorParameterKt_nSIN \
+                                << m_motorParameterKf_pSIN << m_motorParameterKf_nSIN \
+                                << m_motorParameterKv_pSIN << m_motorParameterKv_nSIN \
+                                << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN
+
 #define ALL_INPUT_SIGNALS m_base6d_encodersSIN << m_accelerometerSIN << m_gyroscopeSIN \
                           << m_ddqRefSIN << m_dqRefSIN << m_currentMeasureSIN \
                           << m_saturationCurrentSIN << m_wCurrentTrustSIN << FORCE_TORQUE_SENSORS_SIGNALS \
-                          << m_motorParameterKt_pSIN << m_motorParameterKt_nSIN \
-                          << m_motorParameterKf_pSIN << m_motorParameterKf_nSIN \
-                          << m_motorParameterKv_pSIN << m_motorParameterKv_nSIN \
-                          << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN
+                          << MOTOR_PARAMETER_SIGNALS
 
 #define KINEMATIC_OUTPUT_SIGNALS \
                           m_jointsPositionsSOUT << m_jointsVelocitiesSOUT \
@@ -53,8 +55,10 @@ namespace dynamicgraph
                            << m_jointsTorquesFromInertiaModelSOUT \
                            << m_baseAccelerationSOUT << m_baseAngularVelocitySOUT \
                            << m_ftSensRightFootPredictionSOUT
-
-#define PROFILE_JOINTS_TORQUES_COMPUTATION  "Estimator: tau computation"
+//Size to be aligned                                 "-------------------------------------------------------"
+#define PROFILE_JOINTS_TORQUES_COMPUTATION           "ForceTorqueEst: tau computation                        "
+#define PROFILE_JOINTS_TORQUES_MOTOR_COMPUTATION     "ForceTorqueEst: tau from motor model computation       "
+#define PROFILE_JOINTS_TORQUES_INERTIAL_COMPUTATION  "ForceTorqueEst: tau from inertial model computation    "
 
       namespace dg = ::dynamicgraph;
       using namespace dg;
@@ -121,11 +125,10 @@ namespace dynamicgraph
                                                                 <<m_dqRefSIN
                                                                 <<m_base6d_encodersSIN)
                                                                 
-        ,CONSTRUCT_SIGNAL_INNER(torquesFromMotorModel, ml::Vector,KINEMATIC_OUTPUT_SIGNALS
-                                                                <<m_ddqRefSIN
-                                                                <<m_dqRefSIN
-                                                                <<m_base6d_encodersSIN
-                                                                <<m_currentMeasureSIN)
+        ,CONSTRUCT_SIGNAL_INNER(torquesFromMotorModel, ml::Vector, MOTOR_PARAMETER_SIGNALS
+                                                                   << m_jointsVelocitiesSOUT 
+                                                                   << m_jointsAccelerationsSOUT
+                                                                   << m_currentMeasureSIN)
         ,CONSTRUCT_SIGNAL_INNER(q_dq_ddq,              ml::Vector, m_base6d_encodersSIN)
         ,CONSTRUCT_SIGNAL_INNER(w_dv_torso,            ml::Vector, m_accelerometerSIN<<m_gyroscopeSIN)
 
@@ -411,36 +414,40 @@ namespace dynamicgraph
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
 
-        // copy current measurements from mal to std vectors
-        COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
-        // filter current measurements
-        m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
-        // map filtered current measurements from std to Eigen vectors
-        EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
-
-        // copy motor model parameters from mal to std vectors
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKt_pSIN(iter), m_motorParameterKt_p_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKt_nSIN(iter), m_motorParameterKt_n_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKf_pSIN(iter), m_motorParameterKf_p_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKf_nSIN(iter), m_motorParameterKf_n_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKv_pSIN(iter), m_motorParameterKv_p_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKv_nSIN(iter), m_motorParameterKv_n_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKa_pSIN(iter), m_motorParameterKa_p_std  );
-        COPY_VECTOR_TO_ARRAY(m_motorParameterKa_nSIN(iter), m_motorParameterKa_n_std  );
-        /// *** Get Joints Torques from gearmotors models
-        
-        for(int i=0; i<N_JOINTS; i++)
+        getProfiler().start(PROFILE_JOINTS_TORQUES_MOTOR_COMPUTATION);
         {
+          // copy current measurements from mal to std vectors
+          COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
+          // filter current measurements
+          m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
+          // map filtered current measurements from std to Eigen vectors
+          EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
 
-                double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
-                                                                 m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
-                                                                 m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
-                                                                 m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
-                                                                 m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
-                s(i)=torqueFromCurrent;
-                //m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*torqueFromCurrent ; 
+          // copy motor model parameters from mal to std vectors
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKt_pSIN(iter), m_motorParameterKt_p_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKt_nSIN(iter), m_motorParameterKt_n_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKf_pSIN(iter), m_motorParameterKf_p_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKf_nSIN(iter), m_motorParameterKf_n_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKv_pSIN(iter), m_motorParameterKv_p_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKv_nSIN(iter), m_motorParameterKv_n_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKa_pSIN(iter), m_motorParameterKa_p_std  );
+          COPY_VECTOR_TO_ARRAY(m_motorParameterKa_nSIN(iter), m_motorParameterKa_n_std  );
+          /// *** Get Joints Torques from gearmotors models
+          
+          for(int i=0; i<N_JOINTS; i++)
+          {
+
+                  double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
+                                                                   m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
+                                                                   m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
+                                                                   m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
+                                                                   m_motorParameterKa_p_std[i], m_motorParameterKa_n_std[i] );
+                  s(i)=torqueFromCurrent;
+                  //m_torques(i+6) = m_torques(i+6)*(1-m_wCurrentTrust_std[i])+m_wCurrentTrust_std[i]*torqueFromCurrent ; 
+          }
         }
-          return s;
+        getProfiler().stop(PROFILE_JOINTS_TORQUES_MOTOR_COMPUTATION);
+        return s;
       }
       /** Estimate the joints' torques and the 5 contact wrenches (feet, hand and body). */
       DEFINE_SIGNAL_INNER_FUNCTION(torques_wrenches, ml::Vector)
@@ -448,187 +455,191 @@ namespace dynamicgraph
         if(s.size()!=N_JOINTS+5*6)
           s.resize(N_JOINTS+5*6);
 
-        // map data from mal to eigen vectors
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
-
-        /// COMPUTE BASE ANGULAR VELOCITY AND ACCELERATION FROM IMU MEASUREMENTS
-        if(m_useRawEncoders)
+        getProfiler().start(PROFILE_JOINTS_TORQUES_INERTIAL_COMPUTATION);
         {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(base6d_encoders, m_base6d_encodersSIN(iter));
-          m_q.tail<N_JOINTS>()    = base6d_encoders.tail<N_JOINTS>();
-        }
-        else
-        {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(q_eig,    m_jointsPositionsSOUT(iter));
-          m_q.tail<N_JOINTS>()    = q_eig;
-        }
+          // map data from mal to eigen vectors
+          EIGEN_CONST_VECTOR_FROM_SIGNAL(w_torso_eig,  m_torsoAngularVelocitySOUT(iter));
+          EIGEN_CONST_VECTOR_FROM_SIGNAL(dv_torso_eig, m_torsoAccelerationSOUT(iter));
 
-        if(m_useRefJointsVel)
-        {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_ref,       m_dqRefSIN(iter));
-          m_dq.tail<N_JOINTS>()   = dq_ref;
-        }
-        else
-        {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_eig,       m_jointsVelocitiesSOUT(iter));
-          m_dq.tail<N_JOINTS>()   = dq_eig;
-        }
-
-        // compute homogeneous transformations (iX0 and sXp)
-        // The iX0's are needed to transform the external wrenches to the base frame
-        bcalc< Hrp2_14>::run(m_robot, m_q);
-
-        // compute homogeneous transformations (sXp) and local velocities (vj)
-        // The vj's are needed to propagate the torso's vel/acc to the base
-        // Moreover jcalc is necessary for the RNEA, so we should compute it anyway
-        jcalc< Hrp2_14>::run(m_robot, m_q, m_dq);
-
-        // @todo: calling bcalc and jcalc is redundant because they both compute
-        // sXp, so it'd be better to create a new algorithm that computes iX0, vj
-        // and sXp without any overhead
-
-        // Compute acceleration and angular velocity of base from those of the torso
-        // set vel/acc of the torso link
-        m_node_torso.body.vi.w(w_torso_eig);
-        m_node_torso.body.ai.v(dv_torso_eig.head<3>());
-        m_node_torso.body.ai.w(dv_torso_eig.tail<3>());
-
-        // propagate vel/acc from torso to base link
-        if(m_useRefJointsAcc)
-        {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_ref,    m_ddqRefSIN(iter));
-          m_ddq.tail<N_JOINTS>()  = ddq_ref;
-        }
-        else
-        {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_eig,  m_jointsAccelerationsSOUT(iter));
-          m_ddq.tail<N_JOINTS>()  = ddq_eig;
-        }
-        Vector1d ddqi = m_ddq.segment<1>(m_node_torso.q_idx);
-        update_kinematics_backward<Hrp2_14, Hrp2_14::torso, Hrp2_14::CHEST_LINK0>::run(m_robot, ddqi);
-        ddqi = m_ddq.segment<1>(m_node_chest_link0.q_idx);
-        update_kinematics_backward<Hrp2_14, Hrp2_14::CHEST_LINK0, Hrp2_14::BODY>::run(m_robot, ddqi);
-        // read vel/acc of base link
-        // free flyer acc is lin+ang (disagree with Featherstone convention used by metapod)
-        m_dq.segment<3>(3)  = m_node_body.body.vi.w();  // ang vel
-        m_ddq.head<3>()     = m_node_body.body.ai.v();  // lin acc
-        m_ddq.segment<3>(3) = m_node_body.body.ai.w();  // ang acc
-        // remove gravity acceleration from IMU's measurement
-        m_ddq(2)            -= 9.81; // assume the world z axis points upwards
-
-        // since the velocity of the free-flyer is different from when we called
-        // jcalc, we have to recompute jcalc for the base link before calling RNEA
-        // with the jcalc flag to false (to avoid redoing the same computation)
-        m_node_body.joint.jcalc(m_q.segment<6>(0), m_dq.segment<6>(0));
-
-
-        Spatial::ForceTpl<double> zeroForce(Vector6d::Zero());
-        m_node_right_foot.body.Fext = zeroForce;
-        m_node_left_foot.body.Fext  = zeroForce;
-        m_node_right_hand.body.Fext = zeroForce;
-        m_node_left_hand.body.Fext  = zeroForce;
-
-        if(m_useFTsensors)
-        {
-          /// *** COMPENSATE FOR WEIGHT MEASURED BY F/T SENSORS AND FILTER F/T MEASUREMENTS
-          // Compute RNEA to compute F/T measurements in case of no external forces
-          // The 2nd template argument is false because we have already computed jcalc.
-          rnea< Hrp2_14, false>::run(m_robot, m_q, m_dq, m_ddq);
-
-          // copy force/torque measurements from mal to std vectors
-          COPY_VECTOR_TO_ARRAY(m_ftSensLeftHandSIN(iter),  m_ftSens_LH_std);
-          COPY_VECTOR_TO_ARRAY(m_ftSensRightHandSIN(iter), m_ftSens_RH_std);
-          COPY_VECTOR_TO_ARRAY(m_ftSensLeftFootSIN(iter),  m_ftSens_LF_std);
-          COPY_VECTOR_TO_ARRAY(m_ftSensRightFootSIN(iter), m_ftSens_RF_std);
-
-          // filter force/torque sensors' measurements
-          m_ftSensLeftHandFilter->estimate(m_ftSens_LH_filter_std, m_ftSens_LH_std);
-          m_ftSensRightHandFilter->estimate(m_ftSens_RH_filter_std, m_ftSens_RH_std);
-          m_ftSensLeftFootFilter->estimate(m_ftSens_LF_filter_std, m_ftSens_LF_std);
-          m_ftSensRightFootFilter->estimate(m_ftSens_RF_filter_std, m_ftSens_RF_std);
-
-          // map filtered force/torque measurements from std to Eigen vectors
-          EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_LH_filter_eig, m_ftSens_LH_filter_std);
-          EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_RH_filter_eig, m_ftSens_RH_filter_std);
-          EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_LF_filter_eig, m_ftSens_LF_filter_std);
-          EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_RF_filter_eig, m_ftSens_RF_filter_std);
-
-          if(m_is_first_iter && m_computeFTsensorOffsets)
+          /// COMPUTE BASE ANGULAR VELOCITY AND ACCELERATION FROM IMU MEASUREMENTS
+          if(m_useRawEncoders)
           {
-            // compute force sensor offsets assuming there is no contact at start
-            m_ftSensRightFoot_offset.head<3>() = ftSens_RF_filter_eig.head<3>() + RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.f();
-            m_ftSensRightFoot_offset.tail<3>() = ftSens_RF_filter_eig.tail<3>() + RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.n();
-            m_ftSensLeftFoot_offset.head<3>()  = ftSens_LF_filter_eig.head<3>() + LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.f();
-            m_ftSensLeftFoot_offset.tail<3>()  = ftSens_LF_filter_eig.tail<3>() + LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.n();
-            m_ftSensRightHand_offset.head<3>() = ftSens_RH_filter_eig.head<3>() + RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.f();
-            m_ftSensRightHand_offset.tail<3>() = ftSens_RH_filter_eig.tail<3>() + RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.n();
-            m_ftSensLeftHand_offset.head<3>()  = ftSens_LH_filter_eig.head<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.f();
-            m_ftSensLeftHand_offset.tail<3>()  = ftSens_LH_filter_eig.tail<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.n();
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(base6d_encoders, m_base6d_encodersSIN(iter));
+            m_q.tail<N_JOINTS>()    = base6d_encoders.tail<N_JOINTS>();
+          }
+          else
+          {
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(q_eig,    m_jointsPositionsSOUT(iter));
+            m_q.tail<N_JOINTS>()    = q_eig;
+          }
 
-            // copy F/T sensor offsets in mal vector read by the command getFTsensorOffsets()
-            for(int i=0;i<6;i++)
+          if(m_useRefJointsVel)
+          {
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_ref,       m_dqRefSIN(iter));
+            m_dq.tail<N_JOINTS>()   = dq_ref;
+          }
+          else
+          {
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_eig,       m_jointsVelocitiesSOUT(iter));
+            m_dq.tail<N_JOINTS>()   = dq_eig;
+          }
+
+          // compute homogeneous transformations (iX0 and sXp)
+          // The iX0's are needed to transform the external wrenches to the base frame
+          bcalc< Hrp2_14>::run(m_robot, m_q);
+
+          // compute homogeneous transformations (sXp) and local velocities (vj)
+          // The vj's are needed to propagate the torso's vel/acc to the base
+          // Moreover jcalc is necessary for the RNEA, so we should compute it anyway
+          jcalc< Hrp2_14>::run(m_robot, m_q, m_dq);
+
+          // @todo: calling bcalc and jcalc is redundant because they both compute
+          // sXp, so it'd be better to create a new algorithm that computes iX0, vj
+          // and sXp without any overhead
+
+          // Compute acceleration and angular velocity of base from those of the torso
+          // set vel/acc of the torso link
+          m_node_torso.body.vi.w(w_torso_eig);
+          m_node_torso.body.ai.v(dv_torso_eig.head<3>());
+          m_node_torso.body.ai.w(dv_torso_eig.tail<3>());
+
+          // propagate vel/acc from torso to base link
+          if(m_useRefJointsAcc)
+          {
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_ref,    m_ddqRefSIN(iter));
+            m_ddq.tail<N_JOINTS>()  = ddq_ref;
+          }
+          else
+          {
+            EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_eig,  m_jointsAccelerationsSOUT(iter));
+            m_ddq.tail<N_JOINTS>()  = ddq_eig;
+          }
+          Vector1d ddqi = m_ddq.segment<1>(m_node_torso.q_idx);
+          update_kinematics_backward<Hrp2_14, Hrp2_14::torso, Hrp2_14::CHEST_LINK0>::run(m_robot, ddqi);
+          ddqi = m_ddq.segment<1>(m_node_chest_link0.q_idx);
+          update_kinematics_backward<Hrp2_14, Hrp2_14::CHEST_LINK0, Hrp2_14::BODY>::run(m_robot, ddqi);
+          // read vel/acc of base link
+          // free flyer acc is lin+ang (disagree with Featherstone convention used by metapod)
+          m_dq.segment<3>(3)  = m_node_body.body.vi.w();  // ang vel
+          m_ddq.head<3>()     = m_node_body.body.ai.v();  // lin acc
+          m_ddq.segment<3>(3) = m_node_body.body.ai.w();  // ang acc
+          // remove gravity acceleration from IMU's measurement
+          m_ddq(2)            -= 9.81; // assume the world z axis points upwards
+
+          // since the velocity of the free-flyer is different from when we called
+          // jcalc, we have to recompute jcalc for the base link before calling RNEA
+          // with the jcalc flag to false (to avoid redoing the same computation)
+          m_node_body.joint.jcalc(m_q.segment<6>(0), m_dq.segment<6>(0));
+
+
+          Spatial::ForceTpl<double> zeroForce(Vector6d::Zero());
+          m_node_right_foot.body.Fext = zeroForce;
+          m_node_left_foot.body.Fext  = zeroForce;
+          m_node_right_hand.body.Fext = zeroForce;
+          m_node_left_hand.body.Fext  = zeroForce;
+
+          if(m_useFTsensors)
+          {
+            /// *** COMPENSATE FOR WEIGHT MEASURED BY F/T SENSORS AND FILTER F/T MEASUREMENTS
+            // Compute RNEA to compute F/T measurements in case of no external forces
+            // The 2nd template argument is false because we have already computed jcalc.
+            rnea< Hrp2_14, false>::run(m_robot, m_q, m_dq, m_ddq);
+
+            // copy force/torque measurements from mal to std vectors
+            COPY_VECTOR_TO_ARRAY(m_ftSensLeftHandSIN(iter),  m_ftSens_LH_std);
+            COPY_VECTOR_TO_ARRAY(m_ftSensRightHandSIN(iter), m_ftSens_RH_std);
+            COPY_VECTOR_TO_ARRAY(m_ftSensLeftFootSIN(iter),  m_ftSens_LF_std);
+            COPY_VECTOR_TO_ARRAY(m_ftSensRightFootSIN(iter), m_ftSens_RF_std);
+
+            // filter force/torque sensors' measurements
+            m_ftSensLeftHandFilter->estimate(m_ftSens_LH_filter_std, m_ftSens_LH_std);
+            m_ftSensRightHandFilter->estimate(m_ftSens_RH_filter_std, m_ftSens_RH_std);
+            m_ftSensLeftFootFilter->estimate(m_ftSens_LF_filter_std, m_ftSens_LF_std);
+            m_ftSensRightFootFilter->estimate(m_ftSens_RF_filter_std, m_ftSens_RF_std);
+
+            // map filtered force/torque measurements from std to Eigen vectors
+            EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_LH_filter_eig, m_ftSens_LH_filter_std);
+            EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_RH_filter_eig, m_ftSens_RH_filter_std);
+            EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_LF_filter_eig, m_ftSens_LF_filter_std);
+            EIGEN_VECTOR_FROM_STD_VECTOR(ftSens_RF_filter_eig, m_ftSens_RF_filter_std);
+
+            if(m_is_first_iter && m_computeFTsensorOffsets)
             {
-              m_FTsensorOffsets(i) = m_ftSensRightFoot_offset(i);
-              m_FTsensorOffsets(6+i) = m_ftSensLeftFoot_offset(i);
-              m_FTsensorOffsets(12+i) = m_ftSensRightHand_offset(i);
-              m_FTsensorOffsets(18+i) = m_ftSensLeftHand_offset(i);
+              // compute force sensor offsets assuming there is no contact at start
+              m_ftSensRightFoot_offset.head<3>() = ftSens_RF_filter_eig.head<3>() + RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.f();
+              m_ftSensRightFoot_offset.tail<3>() = ftSens_RF_filter_eig.tail<3>() + RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.n();
+              m_ftSensLeftFoot_offset.head<3>()  = ftSens_LF_filter_eig.head<3>() + LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.f();
+              m_ftSensLeftFoot_offset.tail<3>()  = ftSens_LF_filter_eig.tail<3>() + LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.n();
+              m_ftSensRightHand_offset.head<3>() = ftSens_RH_filter_eig.head<3>() + RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.f();
+              m_ftSensRightHand_offset.tail<3>() = ftSens_RH_filter_eig.tail<3>() + RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.n();
+              m_ftSensLeftHand_offset.head<3>()  = ftSens_LH_filter_eig.head<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.f();
+              m_ftSensLeftHand_offset.tail<3>()  = ftSens_LH_filter_eig.tail<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.n();
+
+              // copy F/T sensor offsets in mal vector read by the command getFTsensorOffsets()
+              for(int i=0;i<6;i++)
+              {
+                m_FTsensorOffsets(i) = m_ftSensRightFoot_offset(i);
+                m_FTsensorOffsets(6+i) = m_ftSensLeftFoot_offset(i);
+                m_FTsensorOffsets(12+i) = m_ftSensRightHand_offset(i);
+                m_FTsensorOffsets(18+i) = m_ftSensLeftHand_offset(i);
+              }
+
+              m_is_first_iter = false;
+              SEND_MSG("Computing force/torque sensor offsets: the robot should make no contact with hands and feet at this moment", MSG_TYPE_WARNING);
+              SEND_MSG("Force/torque sensor offsets is "+toString(m_FTsensorOffsets), MSG_TYPE_INFO);
             }
 
-            m_is_first_iter = false;
-            SEND_MSG("Computing force/torque sensor offsets: the robot should make no contact with hands and feet at this moment", MSG_TYPE_WARNING);
-            SEND_MSG("Force/torque sensor offsets is "+toString(m_FTsensorOffsets), MSG_TYPE_INFO);
+            // remove offset and prediction from force/torque sensors measurements
+            ftSens_LH_filter_eig.head<3>() -= (m_ftSensLeftHand_offset.head<3>() - LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.f());
+            ftSens_LH_filter_eig.tail<3>() -= (m_ftSensLeftHand_offset.tail<3>() - LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.n());
+            ftSens_RH_filter_eig.head<3>() -= (m_ftSensRightHand_offset.head<3>() - RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.f());
+            ftSens_RH_filter_eig.tail<3>() -= (m_ftSensRightHand_offset.tail<3>() - RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.n());
+            ftSens_LF_filter_eig.head<3>() -= (m_ftSensLeftFoot_offset.head<3>() - LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.f());
+            ftSens_LF_filter_eig.tail<3>() -= (m_ftSensLeftFoot_offset.tail<3>() - LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.n());
+            ftSens_RF_filter_eig.head<3>() -= (m_ftSensRightFoot_offset.head<3>() - RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.f());
+            ftSens_RF_filter_eig.tail<3>() -= (m_ftSensRightFoot_offset.tail<3>() - RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.n());
+
+            // convert forces from Eigen vectors to ForceTpl (swap first 3 elements with last 3 elements)
+            Spatial::ForceTpl<double> f_RF(ftSens_RF_filter_eig.tail<3>(), ftSens_RF_filter_eig.head<3>());
+            Spatial::ForceTpl<double> f_LF(ftSens_LF_filter_eig.tail<3>(), ftSens_LF_filter_eig.head<3>());
+            Spatial::ForceTpl<double> f_RH(ftSens_RH_filter_eig.tail<3>(), ftSens_RH_filter_eig.head<3>());
+            Spatial::ForceTpl<double> f_LH(ftSens_LH_filter_eig.tail<3>(), ftSens_LH_filter_eig.head<3>());
+
+            // Map forces from F/T sensor frame to link frame (compute equivalent forces)
+            f_RF = m_RF_X_ftSens.apply(f_RF);
+            f_LF = m_LF_X_ftSens.apply(f_LF);
+            f_RH = m_RH_X_ftSens.apply(f_RH);
+            f_LH = m_LH_X_ftSens.apply(f_LH);
+
+            // compute equivalent forces at the world frame and assign them to feet and hands
+            m_node_right_foot.body.Fext = m_node_right_foot.body.iX0.applyInv(f_RF);
+            m_node_left_foot.body.Fext  = m_node_left_foot.body.iX0.applyInv(f_LF);
+            m_node_right_hand.body.Fext = m_node_right_hand.body.iX0.applyInv(f_RH);
+            m_node_left_hand.body.Fext  = m_node_left_hand.body.iX0.applyInv(f_LH);
+
+            for(int i=0; i<3; i++)
+            {
+              s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_HAND+i)   = f_LH.f()[i];
+              s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_HAND+i+3) = f_LH.n()[i];
+
+              s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_HAND+i)   = f_RH.f()[i];
+              s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_HAND+i+3) = f_RH.n()[i];
+
+              s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_FOOT+i)   = f_LF.f()[i];
+              s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_FOOT+i+3) = f_LF.n()[i];
+
+              s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_FOOT+i)   = f_RF.f()[i];
+              s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_FOOT+i+3) = f_RF.n()[i];
+            }
           }
 
-          // remove offset and prediction from force/torque sensors measurements
-          ftSens_LH_filter_eig.head<3>() -= (m_ftSensLeftHand_offset.head<3>() - LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.f());
-          ftSens_LH_filter_eig.tail<3>() -= (m_ftSensLeftHand_offset.tail<3>() - LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.n());
-          ftSens_RH_filter_eig.head<3>() -= (m_ftSensRightHand_offset.head<3>() - RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.f());
-          ftSens_RH_filter_eig.tail<3>() -= (m_ftSensRightHand_offset.tail<3>() - RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.n());
-          ftSens_LF_filter_eig.head<3>() -= (m_ftSensLeftFoot_offset.head<3>() - LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.f());
-          ftSens_LF_filter_eig.tail<3>() -= (m_ftSensLeftFoot_offset.tail<3>() - LEFT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_foot.joint.f.n());
-          ftSens_RF_filter_eig.head<3>() -= (m_ftSensRightFoot_offset.head<3>() - RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.f());
-          ftSens_RF_filter_eig.tail<3>() -= (m_ftSensRightFoot_offset.tail<3>() - RIGHT_FOOT_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_foot.joint.f.n());
-
-          // convert forces from Eigen vectors to ForceTpl (swap first 3 elements with last 3 elements)
-          Spatial::ForceTpl<double> f_RF(ftSens_RF_filter_eig.tail<3>(), ftSens_RF_filter_eig.head<3>());
-          Spatial::ForceTpl<double> f_LF(ftSens_LF_filter_eig.tail<3>(), ftSens_LF_filter_eig.head<3>());
-          Spatial::ForceTpl<double> f_RH(ftSens_RH_filter_eig.tail<3>(), ftSens_RH_filter_eig.head<3>());
-          Spatial::ForceTpl<double> f_LH(ftSens_LH_filter_eig.tail<3>(), ftSens_LH_filter_eig.head<3>());
-
-          // Map forces from F/T sensor frame to link frame (compute equivalent forces)
-          f_RF = m_RF_X_ftSens.apply(f_RF);
-          f_LF = m_LF_X_ftSens.apply(f_LF);
-          f_RH = m_RH_X_ftSens.apply(f_RH);
-          f_LH = m_LH_X_ftSens.apply(f_LH);
-
-          // compute equivalent forces at the world frame and assign them to feet and hands
-          m_node_right_foot.body.Fext = m_node_right_foot.body.iX0.applyInv(f_RF);
-          m_node_left_foot.body.Fext  = m_node_left_foot.body.iX0.applyInv(f_LF);
-          m_node_right_hand.body.Fext = m_node_right_hand.body.iX0.applyInv(f_RH);
-          m_node_left_hand.body.Fext  = m_node_left_hand.body.iX0.applyInv(f_LH);
-
-          for(int i=0; i<3; i++)
-          {
-            s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_HAND+i)   = f_LH.f()[i];
-            s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_HAND+i+3) = f_LH.n()[i];
-
-            s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_HAND+i)   = f_RH.f()[i];
-            s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_HAND+i+3) = f_RH.n()[i];
-
-            s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_FOOT+i)   = f_LF.f()[i];
-            s(N_JOINTS+6*m_INDEX_WRENCH_LEFT_FOOT+i+3) = f_LF.n()[i];
-
-            s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_FOOT+i)   = f_RF.f()[i];
-            s(N_JOINTS+6*m_INDEX_WRENCH_RIGHT_FOOT+i+3) = f_RF.n()[i];
-          }
+          /// *** COMPUTE RNEA TO ESTIMATE JOINTS TORQUES
+          // Second 3 coordinates of m_q are roll-pitch-yaw orientation of the base.
+          // The 2nd template argument is false because we have already computed jcalc.
+          rnea< Hrp2_14, false>::run(m_robot, m_q, m_dq, m_ddq);
+          getTorques(m_robot, m_torques);
         }
-
-        /// *** COMPUTE RNEA TO ESTIMATE JOINTS TORQUES
-        // Second 3 coordinates of m_q are roll-pitch-yaw orientation of the base.
-        // The 2nd template argument is false because we have already computed jcalc.
-        rnea< Hrp2_14, false>::run(m_robot, m_q, m_dq, m_ddq);
-        getTorques(m_robot, m_torques);
+        getProfiler().stop(PROFILE_JOINTS_TORQUES_INERTIAL_COMPUTATION);
 
 //#define DEBUG_RNEA_BACKWARD
 #ifdef DEBUG_RNEA_BACKWARD
@@ -882,17 +893,13 @@ namespace dynamicgraph
 
       DEFINE_SIGNAL_OUT_FUNCTION(jointsTorquesFromInertiaModel, ml::Vector)
       {
-        getProfiler().start(PROFILE_JOINTS_TORQUES_COMPUTATION);
-        {
-          sotDEBUG(15)<<"Compute jointsTorquesFromInertiaModel output signal "<<iter<<endl;
-  //        bool useVelocity = velocitySIN;
-          const ml::Vector &torques_wrenches = m_torques_wrenchesSINNER(iter);
-          if(s.size()!=N_JOINTS)
-            s.resize(N_JOINTS);
-          for(int i=0; i<N_JOINTS; i++)
-            s(i) = torques_wrenches(i);
-        }
-        getProfiler().stop(PROFILE_JOINTS_TORQUES_COMPUTATION);
+        sotDEBUG(15)<<"Compute jointsTorquesFromInertiaModel output signal "<<iter<<endl;
+//        bool useVelocity = velocitySIN;
+        const ml::Vector &torques_wrenches = m_torques_wrenchesSINNER(iter);
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(int i=0; i<N_JOINTS; i++)
+          s(i) = torques_wrenches(i);
         return s;
       }
       
@@ -910,6 +917,8 @@ namespace dynamicgraph
       
       DEFINE_SIGNAL_OUT_FUNCTION(jointsTorques, ml::Vector)
       {
+        getProfiler().start(PROFILE_JOINTS_TORQUES_COMPUTATION);
+        {
           sotDEBUG(15)<<"Compute jointsTorques output signal "<<iter<<endl;
           // copy current saturation and mixing weigth from mal to std vectors
           COPY_VECTOR_TO_ARRAY(m_saturationCurrentSIN(iter),  m_saturationCurrent_std);
@@ -922,7 +931,7 @@ namespace dynamicgraph
           for(int i=0; i<N_JOINTS; i++)
           {
             if (( m_currentMeasure_std[i] < +m_saturationCurrent_std[i] ) && 
-                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Whould we check it on the filtered data? With an eps?
+                ( m_currentMeasure_std[i] > -m_saturationCurrent_std[i] ) && m_wCurrentTrust_std[i]!=0) //Would we check it on the filtered data? With an eps?
             {
                 s(i) =  torques_fromMotor(i)  *   m_wCurrentTrust_std[i]
                        +torques_fromInertia(i)*(1-m_wCurrentTrust_std[i]);
@@ -930,6 +939,8 @@ namespace dynamicgraph
             else
                 s(i) =  torques_fromInertia(i);
           }
+        }
+        getProfiler().stop(PROFILE_JOINTS_TORQUES_COMPUTATION);
         return s;
       }
 

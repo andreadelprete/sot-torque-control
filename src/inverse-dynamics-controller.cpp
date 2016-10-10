@@ -33,9 +33,9 @@ namespace dynamicgraph
       using namespace dg::command;
       using namespace std;
       using namespace metapod;
-
-#define PROFILE_TAU_DES_COMPUTATION "Desired torques computation"
-#define PROFILE_DDQ_DES_COMPUTATION "Desired ddq computation"
+//Size to be aligned                "-------------------------------------------------------"
+#define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsController: Desired torques computation "
+#define PROFILE_DDQ_DES_COMPUTATION "InverseDynamicsController: Desired ddq computation     "
 
 #define REF_FORCE_SIGNALS m_fRightFootRefSIN << m_fLeftFootRefSIN << \
                           m_fRightHandRefSIN << m_fLeftHandRefSIN
@@ -239,17 +239,16 @@ namespace dynamicgraph
           return s;
         }
 
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(Kp,          m_KpSIN(iter)); // n
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(Kd,          m_KdSIN(iter)); // n
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(q,           m_base6d_encodersSIN(iter));     //n+6
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dq,          m_jointsVelocitiesSIN(iter));     // n
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(qRef,        m_qRefSIN(iter));   // n
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dqRef,       m_dqRefSIN(iter));  // n
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(ddqRef,      m_ddqRefSIN(iter)); // n
 
         getProfiler().start(PROFILE_DDQ_DES_COMPUTATION);
         {
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(Kp,          m_KpSIN(iter)); // n
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(Kd,          m_KdSIN(iter)); // n
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(q,           m_base6d_encodersSIN(iter));     //n+6
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(dq,          m_jointsVelocitiesSIN(iter));     // n
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(qRef,        m_qRefSIN(iter));   // n
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(dqRef,       m_dqRefSIN(iter));  // n
-          EIGEN_CONST_VECTOR_FROM_SIGNAL(ddqRef,      m_ddqRefSIN(iter)); // n
-
           assert(q.size()==N_JOINTS+6     && "Unexpected size of signal base6d_encoder");
           assert(dq.size()==N_JOINTS      && "Unexpected size of signal dq");
           assert(qRef.size()==N_JOINTS    && "Unexpected size of signal qRef");

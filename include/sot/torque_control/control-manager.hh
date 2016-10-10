@@ -109,6 +109,7 @@ namespace dynamicgraph {
         void getCtrlMode(const std::string& jointName);
         void setCtrlMode(const std::string& jointName, const std::string& ctrlMode);
         void setCtrlMode(const int jid, const CtrlMode& cm);
+        void resetProfiler();
 
         /* --- ENTITY INHERITANCE --- */
         virtual void display( std::ostream& os ) const;
