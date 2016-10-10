@@ -74,7 +74,9 @@ namespace dynamicgraph {
                 return 1.0;
             else if(value<-threshold)
                 return -1.0;
-            return pow(value/threshold,3);
+            double a = value/threshold
+            return a*a*a;
+            //return pow(value/threshold,3);
         }
     } // namespace torque_control
   } // namespace sot
