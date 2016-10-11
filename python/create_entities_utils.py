@@ -74,12 +74,15 @@ def create_torque_controller(device, estimator, dt=0.001):
     plug(estimator.jointsVelocities,    torque_ctrl.jointsVelocities);
     plug(estimator.jointsAccelerations, torque_ctrl.jointsAccelerations);
     plug(estimator.jointsTorques,       torque_ctrl.jointsTorques);
-    
+    plug(device.currents,               torque_ctrl.measuredCurrent);
     torque_ctrl.jointsTorquesDesired.value = NJ*(0.0,);
-    torque_ctrl.Kp.value = tuple(k_p);
-    torque_ctrl.Ki.value = NJ*(0.0,);
+    torque_ctrl.KpTorque.value = tuple(k_p_torque);
+    torque_ctrl.KiTorque.value = NJ*(0.0,);
+    torque_ctrl.KpCurrent.value = tuple(k_p_current);
+    torque_ctrl.KiCurrent.value = NJ*(0.0,);
     torque_ctrl.k_tau.value = tuple(k_tau);
     torque_ctrl.k_v.value   = tuple(k_v);
+    torque_ctrl.frictionCompensationPercentage.value = NJ*(0.8,); # 80%
     
 
     torque_ctrl.motorParameterKt_p.value  = tuple(Kt_p)
@@ -133,7 +136,7 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
     ctrl_manager.addCtrlMode("pos");
     ctrl_manager.addCtrlMode("torque");    
-    plug(torque_ctrl.desiredCurrent,        ctrl_manager.ctrl_torque);
+    plug(torque_ctrl.controlCurrent,    ctrl_manager.ctrl_torque);
     plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
     plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
     ctrl_manager.setCtrlMode("all", "pos");
@@ -241,18 +244,23 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
-        ros.add('vector', 'torque_ctrl_predictedPwm_ros',        'torque_ctrl_predictedPwm');
-        ros.add('vector', 'torque_ctrl_predictedPwm_tau_ros',    'torque_ctrl_predictedPwm_tau');
-        ros.add('vector', 'torque_ctrl_pwm_ff_ros',              'torque_ctrl_pwm_ff');
-        ros.add('vector', 'torque_ctrl_pwm_fb_ros',              'torque_ctrl_pwm_fb');
-        ros.add('vector', 'torque_ctrl_pwm_friction_ros',        'torque_ctrl_pwm_friction');
+        ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
+        ros.add('vector', 'torque_ctrl_predictedPwm_tau_ros',       'torque_ctrl_predictedPwm_tau');
+        ros.add('vector', 'torque_ctrl_pwm_ff_ros',                 'torque_ctrl_pwm_ff');
+        ros.add('vector', 'torque_ctrl_pwm_fb_ros',                 'torque_ctrl_pwm_fb');
+        ros.add('vector', 'torque_ctrl_pwm_friction_ros',           'torque_ctrl_pwm_friction');
         ros.add('vector', 'torque_ctrl_predictedJointsTorques_ros', 'torque_ctrl_predictedJointsTorques');
+        ros.add('vector', 'torque_ctrl_controlCurrent_ros',         'torque_ctrl_controlCurrent');
+        ros.add('vector', 'torque_ctrl_desiredCurrent_ros',         'torque_ctrl_desiredCurrent');
         plug(torque_ctrl.predictedPwm,            ros.torque_ctrl_predictedPwm_ros);
         plug(torque_ctrl.predictedPwm_tau,        ros.torque_ctrl_predictedPwm_tau_ros);
         plug(torque_ctrl.pwm_ff,                  ros.torque_ctrl_pwm_ff_ros);
         plug(torque_ctrl.pwm_fb,                  ros.torque_ctrl_pwm_fb_ros);
         plug(torque_ctrl.pwm_friction,            ros.torque_ctrl_pwm_friction_ros);
-        plug(torque_ctrl.predictedJointsTorques,     ros.torque_ctrl_predictedJointsTorques_ros);
+        plug(torque_ctrl.predictedJointsTorques,  ros.torque_ctrl_predictedJointsTorques_ros);
+        plug(torque_ctrl.controlCurrent,          ros.torque_ctrl_controlCurrent_ros);
+        plug(torque_ctrl.desiredCurrent,          ros.torque_ctrl_desiredCurrent_ros);
+
     if(traj_gen!=None):
         ros.add('vector', 'traj_gen_q_ros',             'traj_gen_q');
         ros.add('vector', 'traj_gen_dq_ros',            'traj_gen_dq');
@@ -346,7 +354,8 @@ def create_tracer(device, traj_gen=None, estimator=None, inv_dyn=None, torque_ct
             f.write('Inv dyn Kf: {0}\n'.format(inv_dyn.Kf.value));
             f.write('Inv dyn Ki: {0}\n'.format(inv_dyn.Ki.value));
         if(torque_ctrl!=None):
-            f.write('Torque ctrl Kp: {0}\n'.format(torque_ctrl.Kp.value));
+            f.write('Torque ctrl KpTorque: {0}\n'.format (torque_ctrl.KpTorque.value ));
+            f.write('Torque ctrl KpCurrent: {0}\n'.format(torque_ctrl.KpCurrent.value));
             f.write('Torque ctrl K_tau: {0}\n'.format(torque_ctrl.k_tau.value));
             f.write('Torque ctrl K_v: {0}\n'.format(torque_ctrl.k_v.value));
     f.close();

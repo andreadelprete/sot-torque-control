@@ -44,12 +44,12 @@ namespace dynamicgraph
 #define ESTIMATOR_INPUT_SIGNALS m_base6d_encodersSIN << m_jointsVelocitiesSIN << m_jointsAccelerationsSIN << \
                                 m_jointsTorquesSIN
 
-#define CONTROL_INPUT_SIGNALS   m_jointsTorquesDesiredSIN << m_KpSIN << m_KiSIN //<< m_activeJointsSIN
-
+#define TORQUE_CONTROL_INPUT_SIGNALS    m_jointsTorquesDesiredSIN << m_KpTorqueSIN  << m_KiTorqueSIN  << m_frictionCompensationPercentageSIN//<< m_activeJointsSIN
+#define CURRENT_CONTROL_INPUT_SIGNALS   m_measuredCurrentSIN      << m_KpCurrentSIN << m_KiCurrentSIN 
 #define ALL_INPUT_SIGNALS       m_pwmSIN << m_tauFFSIN << m_tauFBSIN << \
-                                ESTIMATOR_INPUT_SIGNALS << CONTROL_INPUT_SIGNALS << MODEL_INPUT_SIGNALS
+                                ESTIMATOR_INPUT_SIGNALS << TORQUE_CONTROL_INPUT_SIGNALS << CURRENT_CONTROL_INPUT_SIGNALS << MODEL_INPUT_SIGNALS
 
-#define ALL_OUTPUT_SIGNALS      m_desiredCurrentSOUT << m_predictedJointsTorquesSOUT << \
+#define ALL_OUTPUT_SIGNALS      m_desiredCurrentSOUT << m_controlCurrentSOUT << m_predictedJointsTorquesSOUT << \
                                 m_predictedPwmSOUT << m_predictedPwm_tauSOUT << \
                                 m_pwm_ffSOUT << m_pwm_fbSOUT << m_pwm_frictionSOUT
 
@@ -75,16 +75,20 @@ namespace dynamicgraph
       JointTorqueController::
       JointTorqueController( const std::string & name )
         : Entity(name),
-        CONSTRUCT_SIGNAL_IN(base6d_encoders,        ml::Vector)
-        ,CONSTRUCT_SIGNAL_IN(pwm,                   ml::Vector)
+         CONSTRUCT_SIGNAL_IN(base6d_encoders,        ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(pwm,                    ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(jointsVelocities,       ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(jointsAccelerations,    ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(jointsTorques,          ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(jointsTorquesDesired,   ml::Vector)
-        ,CONSTRUCT_SIGNAL_IN(Kp,                     ml::Vector)    // proportional gain
-        ,CONSTRUCT_SIGNAL_IN(Ki,                     ml::Vector)    // integral gain
+        ,CONSTRUCT_SIGNAL_IN(measuredCurrent,        ml::Vector) 
+        ,CONSTRUCT_SIGNAL_IN(KpTorque,                     ml::Vector)   // proportional gain for torque feedback controller
+        ,CONSTRUCT_SIGNAL_IN(KiTorque,                     ml::Vector)   // integral gain for torque feedback controller      /!\ TODO implement 
+        ,CONSTRUCT_SIGNAL_IN(KpCurrent,                     ml::Vector)  // proportional gain for current feedback controller
+        ,CONSTRUCT_SIGNAL_IN(KiCurrent,                     ml::Vector)  // integral gain for current feedback controller     /!\ TODO implement 
         ,CONSTRUCT_SIGNAL_IN(k_tau,                  ml::Vector)// to be del
         ,CONSTRUCT_SIGNAL_IN(k_v,                    ml::Vector)// to be del
+        ,CONSTRUCT_SIGNAL_IN(frictionCompensationPercentage, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKt_p, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKt_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKf_p, ml::Vector)
@@ -96,8 +100,11 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(tauFF,                  ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(tauFB,                  ml::Vector)
         ,CONSTRUCT_SIGNAL_OUT(desiredCurrent,        ml::Vector,   ESTIMATOR_INPUT_SIGNALS <<
-                                                                   CONTROL_INPUT_SIGNALS <<
+                                                                   TORQUE_CONTROL_INPUT_SIGNALS <<
                                                                    MODEL_INPUT_SIGNALS )
+
+        ,CONSTRUCT_SIGNAL_OUT(controlCurrent,        ml::Vector,   m_desiredCurrentSOUT <<
+                                                                   CURRENT_CONTROL_INPUT_SIGNALS )
         ,CONSTRUCT_SIGNAL_OUT(predictedJointsTorques,  ml::Vector, m_pwmSIN<<
                                                                    m_jointsVelocitiesSIN<<
                                                                    m_k_tauSIN<<
@@ -112,7 +119,7 @@ namespace dynamicgraph
                                                                   m_jointsTorquesSIN <<
                                                                   m_jointsTorquesDesiredSIN <<
                                                                   m_k_tauSIN <<
-                                                                  m_KpSIN)
+                                                                  m_KpTorqueSIN)
         ,CONSTRUCT_SIGNAL_OUT(pwm_friction,        ml::Vector, m_jointsVelocitiesSIN <<
                                                                   m_k_vSIN)
 
@@ -158,18 +165,23 @@ namespace dynamicgraph
           return SEND_MSG("Init failed: signal m_k_tauSIN is not plugged", MSG_TYPE_ERROR);
         if(!m_k_vSIN.isPlugged())
           return SEND_MSG("Init failed: signal m_k_vSIN is not plugged", MSG_TYPE_ERROR);
-        if(!m_KpSIN.isPlugged())
-          return SEND_MSG("Init failed: signal Kp is not plugged", MSG_TYPE_ERROR);
-        if(!m_KiSIN.isPlugged())
-          return SEND_MSG("Init failed: signal m_KiSIN is not plugged", MSG_TYPE_ERROR);
-
+        if(!m_KpTorqueSIN.isPlugged())
+          return SEND_MSG("Init failed: signal m_KpTorqueSIN is not plugged", MSG_TYPE_ERROR);
+        if(!m_KiTorqueSIN.isPlugged())
+          return SEND_MSG("Init failed: signal m_KiTorqueSIN is not plugged", MSG_TYPE_ERROR);
+        if(!m_KpCurrentSIN.isPlugged())
+          return SEND_MSG("Init failed: signal m_KpCurrentSIN is not plugged", MSG_TYPE_ERROR);
+        if(!m_KiCurrentSIN.isPlugged())
+          return SEND_MSG("Init failed: signal m_KiCurrentSIN is not plugged", MSG_TYPE_ERROR);
         m_dt = timestep;
         m_firstIter = true;
         m_tau_star.setZero(N_JOINTS);
+        m_current_star.setZero(N_JOINTS);
         m_f.setZero(N_JOINTS);
         m_g.setZero(N_JOINTS);
         m_current_des.setZero(N_JOINTS);
         m_tauErrIntegral.setZero(N_JOINTS);
+        m_currentErrIntegral.setZero(N_JOINTS);
         m_qDes_for_position_controlled_joints.setZero(N_JOINTS);
         m_activeJoints.resize(N_JOINTS,true);
         updateActiveJointsString();
@@ -220,10 +232,11 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq,           m_jointsAccelerationsSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(tau,           m_jointsTorquesSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(tau_d,         m_jointsTorquesDesiredSIN(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp,            m_KpSIN(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(ki,            m_KiSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp,            m_KpTorqueSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(ki,            m_KiTorqueSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(k_tau,         m_k_tauSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(k_v,           m_k_vSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(frictionCompensationPercentage, m_frictionCompensationPercentageSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKt_p, m_motorParameterKt_pSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKt_n, m_motorParameterKt_nSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKf_p, m_motorParameterKf_pSIN(iter));
@@ -232,9 +245,6 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKv_n, m_motorParameterKv_nSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKa_p, m_motorParameterKa_pSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKa_n, m_motorParameterKa_nSIN(iter));
-
-
-
 
 //        EIGEN_CONST_VECTOR_FROM_SIGNAL(activeJoints,  m_activeJointsSIN(iter));
 //        EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq,           m_jointsAccelerationsSIN(iter));
@@ -254,7 +264,7 @@ namespace dynamicgraph
             {
                 m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i), ddq(i),
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
-                                                         motorParameterKf_p(i), motorParameterKf_n(i),
+                                                         motorParameterKf_p(i)*frictionCompensationPercentage(i), motorParameterKf_n(i)*frictionCompensationPercentage(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
                                                          motorParameterKa_p(i), motorParameterKa_n(i) );
             }
@@ -263,7 +273,7 @@ namespace dynamicgraph
             {
                 m_current_des(i) = motorModel.getCurrent(m_tau_star(i), dq(i+6), ddq(i+6),
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
-                                                         motorParameterKf_p(i), motorParameterKf_n(i),
+                                                         motorParameterKf_p(i)*frictionCompensationPercentage(i), motorParameterKf_n(i)*frictionCompensationPercentage(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
                                                          motorParameterKa_p(i), motorParameterKa_n(i) );
             }
@@ -292,6 +302,32 @@ namespace dynamicgraph
 //        SEND_MSG("tau  = "+toString(tau_d(JID)),MSG_TYPE_DEBUG);
         return s;
       }
+
+
+ DEFINE_SIGNAL_OUT_FUNCTION(controlCurrent, ml::Vector)
+      {
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(current,       m_measuredCurrentSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(current_d,     m_desiredCurrentSOUT(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp,            m_KpCurrentSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(ki,            m_KiCurrentSIN(iter));
+
+        m_currentErrIntegral += m_dt * ki.cwiseProduct(current_d-current);
+        m_current_star = current_d + kp.cwiseProduct(current_d - current) + m_currentErrIntegral;
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(int i=0; i<N_JOINTS; i++)
+        {
+          if(m_activeJoints[i]==false)
+            s(i) = 0.0;
+          else if (false) //TODO check saturation
+            s(i) = 0.0;
+          else
+            s(i) = m_current_star(i);
+        }
+        return s;
+      }
+
+
 
       DEFINE_SIGNAL_OUT_FUNCTION(predictedPwm, ml::Vector)
       {
@@ -336,7 +372,7 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(tau_d,         m_jointsTorquesDesiredSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(tauFB,         m_tauFBSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(k_tau,         m_k_tauSIN(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(k_p,           m_KpSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(k_p,           m_KpTorqueSIN(iter));
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
         for(int i=0; i<N_JOINTS; i++)

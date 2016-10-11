@@ -67,8 +67,8 @@ namespace dynamicgraph {
         *   plug(estimator.jointsVelocities,    jtc.jointsVelocities);
         *   plug(estimator.jointsAccelerations, jtc.jointsAccelerations);
         *   plug(estimator.jointsTorques,       jtc.jointsTorques);
-        *   jtc.Kp.value = N_DOF*(10.0,);
-        *   jtc.Ki.value = N_DOF*(0.01,);
+        *   jtc.KpTorque.value = N_DOF*(10.0,);
+        *   jtc.KiTorque.value = N_DOF*(0.01,);
         *   jtc.k_tau.value = ...
         *   jtc.k_v.value = ...
         *   jtc.init(dt);
@@ -88,8 +88,12 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(jointsAccelerations,    ml::Vector);      /// ddq
         DECLARE_SIGNAL_IN(jointsTorques,          ml::Vector);      /// estimated joints torques tau
         DECLARE_SIGNAL_IN(jointsTorquesDesired,   ml::Vector);      /// desired joints torques tauDes
-        DECLARE_SIGNAL_IN(Kp,                     ml::Vector);      /// proportional gain
-        DECLARE_SIGNAL_IN(Ki,                     ml::Vector);      /// integral gain
+        DECLARE_SIGNAL_IN(measuredCurrent,        ml::Vector);      /// measured current in amps
+        DECLARE_SIGNAL_IN(KpTorque,               ml::Vector);      /// proportional gain for torque feedback controller
+        DECLARE_SIGNAL_IN(KiTorque,               ml::Vector);      /// integral gain for torque feedback controller      /!\ TODO implement 
+        DECLARE_SIGNAL_IN(KpCurrent,              ml::Vector);      /// proportional gain for current feedback controller
+        DECLARE_SIGNAL_IN(KiCurrent,              ml::Vector);      /// integral gain for current feedback controller     /!\ TODO implement
+ 
 //        DECLARE_SIGNAL_IN(dq_threshold,           ml::Vector);      /// velocity sign threshold
 //        DECLARE_SIGNAL_IN(ddq_threshold,          ml::Vector);      /// acceleration sign threshold
 //        DECLARE_SIGNAL_IN(activeJoints,           ml::Vector);      /// mask with 1 for (torque) controlled joints and 0 for position controlled joints
@@ -97,6 +101,7 @@ namespace dynamicgraph {
         /// parameters for the linear model
         DECLARE_SIGNAL_IN(k_tau,                ml::Vector); //to be del
         DECLARE_SIGNAL_IN(k_v,                  ml::Vector); //to be del
+        DECLARE_SIGNAL_IN(frictionCompensationPercentage, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKt_p, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKt_n, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKf_p, ml::Vector);
@@ -151,7 +156,8 @@ namespace dynamicgraph {
 //        DECLARE_SIGNAL_IN(g_dq1n,               ml::Vector);
 //        DECLARE_SIGNAL_IN(g_dq2n,               ml::Vector);
 
-        DECLARE_SIGNAL_OUT(desiredCurrent,  ml::Vector);  /// currentDes to command to the motors
+        DECLARE_SIGNAL_OUT(desiredCurrent,  ml::Vector);  /// Desired current 
+        DECLARE_SIGNAL_OUT(controlCurrent,  ml::Vector);  /// current command to send to the motor drivers
 
         /// Signals for monitoring the behavior of the entity
         DECLARE_SIGNAL_OUT(predictedJointsTorques,  ml::Vector);  /// k_tau^{-1}*(delta_q - k_v*dq)
@@ -175,10 +181,12 @@ namespace dynamicgraph {
         bool m_firstIter;
         double m_dt; /// timestep of the controller
         Eigen::VectorXd m_tau_star;
+        Eigen::VectorXd m_current_star;
         Eigen::VectorXd m_f;
         Eigen::VectorXd m_g;
         Eigen::VectorXd m_current_des;
         Eigen::VectorXd m_tauErrIntegral; /// integral of the torque error
+        Eigen::VectorXd m_currentErrIntegral; /// integral of the current error
         Eigen::VectorXd m_qDes_for_position_controlled_joints;
         std::vector<bool> m_activeJoints;
         std::string m_activeJointsString;

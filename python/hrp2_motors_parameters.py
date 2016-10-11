@@ -22,8 +22,8 @@ Kt_n[2]=0.079290
 Kf_p[2]=0.5
 Kf_n[2]=1.0
 
-
-k_p = zeros(NJ);    # torque control proportional gains
+k_p_current = zeros(NJ);    # current control proportional gains
+k_p_torque  = zeros(NJ);    # torque  control proportional gains
 k_tau = zeros(NJ);  # motor torque constant
 k_v   = zeros(NJ);  # viscous friction coefficient
 k_tp = zeros(NJ);   # not used
@@ -44,13 +44,13 @@ tau_max[:] = 1000.0;
 # PARAMETERS OF R_hip_y JOINT 0
 k_v[0] = 0.013; # originally it was 0.0156, but I decreased after tests on hrp2
 k_tau[0] = 0.000212;
-k_p[0] = 12.0;
+k_p_torque[0] = 12.0;
 k_s[0] = 1550; # 1550 is equivalent to pos ctrl (or maybe 1500?)
 k_d[0] = 30;
 # PARAMETERS OF R_hip_r JOINT 1
 k_v[1] = 0.006332
 k_tau[1] = 0.000030
-k_p[1] = 5; #15.0 # could easily go up to 20, but it's a bit less stable
+k_p_torque[1] = 5; #15.0 # could easily go up to 20, but it's a bit less stable
 k_s[1] = 11100; #11100 is equivalent to position ctrl
 k_d[1] = 70;
 # PARAMETERS OF R_hip_p JOINT 2
@@ -59,34 +59,34 @@ k_tau[2] = 0.00012
 k_tau[2] = 3.11249095e-04 # hand tuning 24/06/2015
 k_tp[2] = 0.001574
 k_tn[2] = 0.000169
-k_p[2] = 6; #with delay 30 ms
+k_p_torque[2] = 6; #with delay 30 ms
 k_s[2] = 2800;   # 2800 is equivalent to pos ctrl
 k_d[2] = 30;
 # PARAMETERS OF R_knee JOINT 3
 k_v[3] = 0.006561
 k_tau[3] = 0.000051
 k_tau[3] = 9.03496110e-05  # hand tuning 24/06/2015
-k_p[3] = 10.0;  # with 12 it starts vibrating at low velocity
+k_p_torque[3] = 10.0;  # with 12 it starts vibrating at low velocity
 k_s[3] = 6530; # 6530 is equivalent to pos ctrl
 k_d[3] = 50;
 # PARAMETERS OF R_ankle pitch JOINT 4
 k_v[4] = 0.9*0.007698
 k_tau[4] = 0.000177 # hand tuning 24/06/2015
-k_p[4] = 10.0;  # 10 feels good, but maybe i could go higher
+k_p_torque[4] = 10.0;  # 10 feels good, but maybe i could go higher
 k_s[4] = 1900; # 1900 is equivalent to pos ctrl
 k_d[4] = 20;
 # PARAMETERS OF R_ankle roll JOINT 5
 k_v[5] = 0.006; # it was 0.007042, but i decreased it to make it more stable
 k_tau[5] = 0.000240
-k_p[5] = 15.0; # could go higher, but it feels already good
+k_p_torque[5] = 15.0; # could go higher, but it feels already good
 k_s[5] = 1390; #1390 is equivalent to pos ctrl
 k_d[5] = 10;
 # PARAMETERS OF Left hip pitch JOINT 8
 k_v[8] = 0.007561
 k_tau[8] = 0.000084
-k_p[8] = 6.0;   # with delay 20 ms
+k_p_torque[8] = 6.0;   # with delay 20 ms
 
-k_p[:] = 2.0;
+k_p_torque[:] = 2.0;
 k_s = 0.05*k_s;
 
 # set to zero the motor parameters
