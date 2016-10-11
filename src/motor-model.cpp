@@ -74,7 +74,7 @@ namespace dynamicgraph {
                 return 1.0;
             else if(value<-threshold)
                 return -1.0;
-            double a = value/threshold
+            double a = value/threshold;
             return a*a*a;
             //return pow(value/threshold,3);
         }
