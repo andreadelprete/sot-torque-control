@@ -37,7 +37,7 @@ namespace dynamicgraph
 #define PROFILE_DYNAMIC_GRAPH_PERIOD          "Control period                                         "
 
 #define SAFETY_SIGNALS m_max_pwmSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN
-#define INPUT_SIGNALS  m_base6d_encodersSIN << SAFETY_SIGNALS
+#define INPUT_SIGNALS  m_base6d_encodersSIN << m_percentageDriverDeadZoneCompensationSIN << SAFETY_SIGNALS << m_signWindowsFilterSizeSIN
 
       /// Define EntityClassName here rather than in the header file
       /// so that it can be used by the macros DEFINE_SIGNAL_**_FUNCTION.
@@ -59,7 +59,11 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(tau_predicted,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(max_pwm,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(max_tau,ml::Vector)
-            ,CONSTRUCT_SIGNAL_OUT(pwmDes,    ml::Vector, m_base6d_encodersSIN)
+            ,CONSTRUCT_SIGNAL_IN(percentageDriverDeadZoneCompensation,ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(signWindowsFilterSize, ml::Vector)
+            ,CONSTRUCT_SIGNAL_OUT(pwmDes,               ml::Vector, m_base6d_encodersSIN)
+            ,CONSTRUCT_SIGNAL_OUT(signOfControl,        ml::Vector, m_pwmDesSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(signOfControlFiltered,ml::Vector, m_pwmDesSafeSOUT)
             ,CONSTRUCT_SIGNAL_OUT(pwmDesSafe,ml::Vector, INPUT_SIGNALS << m_pwmDesSOUT)
             ,m_initSucceeded(false)
             ,m_maxPwm_violated(false)
@@ -70,7 +74,7 @@ namespace dynamicgraph
         m_jointCtrlModes_previous.resize(N_JOINTS);
         m_jointCtrlModesCountDown.resize(N_JOINTS,0);
 
-        Entity::signalRegistration( INPUT_SIGNALS << m_pwmDesSOUT << m_pwmDesSafeSOUT );
+        Entity::signalRegistration( INPUT_SIGNALS << m_pwmDesSOUT << m_pwmDesSafeSOUT << m_signOfControlFilteredSOUT << m_signOfControlSOUT);
 
         /* Commands. */
         addCommand("init",
@@ -186,7 +190,8 @@ namespace dynamicgraph
         const ml::Vector& tau_max         = m_max_tauSIN(iter);
         const ml::Vector& tau             = m_tauSIN(iter);
         const ml::Vector& tau_predicted   = m_tau_predictedSIN(iter);
-
+        const ml::Vector& percentageDriverDeadZoneCompensation = m_percentageDriverDeadZoneCompensationSIN(iter);
+        const ml::Vector& signWindowsFilterSize                = m_signWindowsFilterSizeSIN(iter);
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
 
@@ -196,15 +201,41 @@ namespace dynamicgraph
           stringstream ss;
           for(unsigned int i=0; i<N_JOINTS; i++)
           {
-            if (pwmDes(i) > 0)
-              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL + DEAD_ZONE_OFFSET;
-            else
+            //Trigger sign filter**********************
+            /*              _    _   _________________________    _
+               input ______| |__| |_|                         |__| |________
+                            __________________________________
+               output______|                                  |_____________
+            */
+            if (( (pwmDes(i) > 0) && (!m_signIsPos[i]) )   
+              ||( (pwmDes(i) < 0) && ( m_signIsPos[i]) ))  //If not the same sign
             {
-              if (pwmDes(i) < 0)
-                s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL - DEAD_ZONE_OFFSET;
-              else 
-                s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL;
-            } 
+              m_changeSignCpt[i]++; //cpt the straight-times we disagree on sign
+              if (i == 2) printf("inc cpt=%d \t pos=%d\r\n", m_changeSignCpt[i],m_signIsPos[i]);
+            }
+            else
+            { 
+              m_changeSignCpt[i] = 0; //we agree
+              if (i == 2) printf("rst cpt=%d \t pos=%d \t win=%d\r\n", m_changeSignCpt[i],m_signIsPos[i],m_winSizeAdapt[i]);
+              if (m_winSizeAdapt[i]>0) m_winSizeAdapt[i]--;  //decrese reactivity (set a smaller windows)
+            }
+            if (m_changeSignCpt[i] > m_winSizeAdapt[i]) 
+            {
+              
+              m_signIsPos[i] = !m_signIsPos[i];//let's change our mind
+              m_changeSignCpt[i] = 0; //we just agreed
+              m_winSizeAdapt[i]  = signWindowsFilterSize(i); //be not so reactive for next event (set a large windows size)
+              if (i == 2) printf("toogle signIsPos=%d\r\n", m_signIsPos[i]);
+            }
+            //*****************************************
+
+            if (pwmDes(i) == 0)
+              s(i) = 0;
+            else if (m_signIsPos[i])
+              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL + percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
+            else
+              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL - percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
+
 
             if(fabs(tau(i)) > tau_max(i))
             {
@@ -248,7 +279,41 @@ namespace dynamicgraph
         if(m_maxPwm_violated)
           for(unsigned int i=0; i<N_JOINTS; i++)
             s(i) = 0.0;
+        return s;
+      }
 
+      DEFINE_SIGNAL_OUT_FUNCTION(signOfControl,ml::Vector)
+      {
+        const ml::Vector& pwmDes = m_pwmDesSOUT(iter);
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(unsigned int i=0; i<N_JOINTS; i++)
+        {
+          if (pwmDes(i)>0)
+            s(i)= 1;
+          else if (pwmDes(i)<0)
+            s(i)=-1;
+          else 
+            s(i)=0;
+        }
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(signOfControlFiltered,ml::Vector)
+      {
+        const ml::Vector& pwmDesSafe = m_pwmDesSafeSOUT(iter);
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(unsigned int i=0; i<N_JOINTS; i++)
+        {
+          if (pwmDesSafe(i)==0) 
+            s(i)=0;
+          else if (m_signIsPos[i])
+            s(i)=1;
+          else 
+            s(i)=-1;
+
+        }
         return s;
       }
 

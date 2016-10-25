@@ -95,13 +95,20 @@ namespace dynamicgraph {
         /* --- SIGNALS --- */
         std::vector<dynamicgraph::SignalPtr<ml::Vector,int>*> m_ctrlInputsSIN;
         std::vector<dynamicgraph::Signal<ml::Vector,int>*> m_jointsCtrlModesSOUT;
-        DECLARE_SIGNAL_IN(base6d_encoders,  ml::Vector);
-        DECLARE_SIGNAL_IN(tau,              ml::Vector);  /// estimated joint torques (using dynamic robot model + F/T sensors)
-        DECLARE_SIGNAL_IN(tau_predicted,    ml::Vector);  /// predicted joint torques (using motor model)
-        DECLARE_SIGNAL_IN(max_pwm,          ml::Vector);  /// max PWM allows before stopping the controller
-        DECLARE_SIGNAL_IN(max_tau,          ml::Vector);  /// max torque allowed before stopping the controller
-        DECLARE_SIGNAL_OUT(pwmDes,          ml::Vector);
-        DECLARE_SIGNAL_OUT(pwmDesSafe,      ml::Vector);  /// same as pwmDes when everything is fine, 0 otherwise //todo change since pwmDes is now the desired current and pwmDesSafe is the DAC 
+
+        DECLARE_SIGNAL_IN(base6d_encoders,                       ml::Vector);
+        DECLARE_SIGNAL_IN(tau,                                   ml::Vector);  /// estimated joint torques (using dynamic robot model + F/T sensors)
+        DECLARE_SIGNAL_IN(tau_predicted,                         ml::Vector);  /// predicted joint torques (using motor model)
+        DECLARE_SIGNAL_IN(max_pwm,                               ml::Vector);  /// max PWM allows before stopping the controller
+        DECLARE_SIGNAL_IN(max_tau,                               ml::Vector);  /// max torque allowed before stopping the controller
+        DECLARE_SIGNAL_IN(percentageDriverDeadZoneCompensation,  ml::Vector);  /// percentatge in [0;1] of the motor driver dead zone that we should compensate 0 is none, 1 is all of it
+        DECLARE_SIGNAL_IN(signWindowsFilterSize,                 ml::Vector);  /// windows size to detect changing of control sign (to then apply motor driver dead zone compensation) 0 is no filter. 1,2,3...
+        DECLARE_SIGNAL_OUT(pwmDes,                               ml::Vector);
+        DECLARE_SIGNAL_OUT(pwmDesSafe,                           ml::Vector);  /// same as pwmDes when everything is fine, 0 otherwise //TODO change since pwmDes is now the desired current and pwmDesSafe is the DAC 
+        DECLARE_SIGNAL_OUT(signOfControlFiltered,                ml::Vector);  /// sign of control filtered (indicating dead zone compensation applyed)
+        DECLARE_SIGNAL_OUT(signOfControl,                        ml::Vector);  /// sign of control without filtered (indicating what would be the dead zone compensation applyed if no filtering on sign)
+
+
 
         /* --- COMMANDS --- */
         void addCtrlMode(const std::string& name);
@@ -128,6 +135,17 @@ namespace dynamicgraph {
         double  m_maxPwm;           /// max PWM
         bool    m_maxPwm_violated;  /// true if the max PWM has been violated
         bool    m_is_first_iter;    /// true at the first iteration, false otherwise
+
+        bool         m_signIsPos    [N_JOINTS]={0}; /// Control sign filtered for deadzone compensation
+        unsigned int m_changeSignCpt[N_JOINTS]={0}; /// Cpt to filter the control sign
+        unsigned int m_winSizeAdapt [N_JOINTS]={0}; /// Variable windows filter size used to be more reactibe if last changing sign event is dating a bit (see graph)
+        /*
+                        _    _   _________________________    _
+           input ______| |__| |_|                         |__| |________
+                        __________________________________
+           output______|                                  |_____________
+
+        */
 
         std::vector<std::string>  m_ctrlModes;                /// existing control modes
         std::vector<CtrlMode>     m_jointCtrlModes_current;   /// control mode of the joints

@@ -74,7 +74,7 @@ def create_torque_controller(device, estimator, dt=0.001):
     plug(estimator.jointsVelocities,    torque_ctrl.jointsVelocities);
     plug(estimator.jointsAccelerations, torque_ctrl.jointsAccelerations);
     plug(estimator.jointsTorques,       torque_ctrl.jointsTorques);
-    plug(device.currents,               torque_ctrl.measuredCurrent);
+    plug(estimator.currentFiltered,               torque_ctrl.measuredCurrent);
     torque_ctrl.jointsTorquesDesired.value = NJ*(0.0,);
     torque_ctrl.KpTorque.value = tuple(k_p_torque);
     torque_ctrl.KiTorque.value = NJ*(0.0,);
@@ -93,6 +93,7 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.motorParameterKv_n.value  = tuple(Kv_n)
     torque_ctrl.motorParameterKa_p.value  = tuple(Ka_p)
     torque_ctrl.motorParameterKa_n.value  = tuple(Ka_n)
+    torque_ctrl.polySignDq.value          = NJ*(3,); 
     torque_ctrl.init(dt);
     return torque_ctrl;
     
@@ -131,7 +132,8 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
     plug(estimator.jointsTorques,            ctrl_manager.tau);
     ctrl_manager.max_tau.value = tuple(tau_max);
-    
+    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.8,);
+    ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
     plug(ctrl_manager.pwmDesSafe,       device.control);
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
     ctrl_manager.addCtrlMode("pos");
@@ -150,7 +152,8 @@ def create_ctrl_manager_noTorqueControl(device, torque_ctrl, pos_ctrl, estimator
     plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
     plug(estimator.jointsTorques,            ctrl_manager.tau);
     ctrl_manager.max_tau.value = tuple(tau_max);
-    
+    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.8,);
+    ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
     plug(ctrl_manager.pwmDesSafe,       device.control);
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
     ctrl_manager.addCtrlMode("pos");
@@ -227,7 +230,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         ros.add('vector', 'estimator_jointsTorques_ros',                 'estimator_jointsTorques');
         ros.add('vector', 'estimator_jointsTorquesFromInertiaModel_ros', 'estimator_jointsTorquesFromInertiaModel');
         ros.add('vector', 'estimator_jointsTorquesFromMotorModel_ros',   'estimator_jointsTorquesFromMotorModel');
-        
+        ros.add('vector', 'estimator_currentFiltered_ros',               'estimator_currentFiltered');
 #        plug(estimator.jointsPositions,         ros.estimator_jointsPositions_ros);
         plug(estimator.jointsVelocities,        ros.estimator_jointsVelocities_ros);
         plug(estimator.jointsAccelerations,     ros.estimator_jointsAccelerations_ros);
@@ -242,6 +245,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.jointsTorques,                     ros.estimator_jointsTorques_ros);
         plug(estimator.jointsTorquesFromInertiaModel,     ros.estimator_jointsTorquesFromInertiaModel_ros);
         plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
+        plug(estimator.currentFiltered,                   ros.estimator_currentFiltered_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
         ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
@@ -249,6 +253,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         ros.add('vector', 'torque_ctrl_pwm_ff_ros',                 'torque_ctrl_pwm_ff');
         ros.add('vector', 'torque_ctrl_pwm_fb_ros',                 'torque_ctrl_pwm_fb');
         ros.add('vector', 'torque_ctrl_pwm_friction_ros',           'torque_ctrl_pwm_friction');
+        ros.add('vector', 'torque_ctrl_smoothSignDq_ros',           'torque_ctrl_smoothSignDq');
         ros.add('vector', 'torque_ctrl_predictedJointsTorques_ros', 'torque_ctrl_predictedJointsTorques');
         ros.add('vector', 'torque_ctrl_controlCurrent_ros',         'torque_ctrl_controlCurrent');
         ros.add('vector', 'torque_ctrl_desiredCurrent_ros',         'torque_ctrl_desiredCurrent');
@@ -257,6 +262,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(torque_ctrl.pwm_ff,                  ros.torque_ctrl_pwm_ff_ros);
         plug(torque_ctrl.pwm_fb,                  ros.torque_ctrl_pwm_fb_ros);
         plug(torque_ctrl.pwm_friction,            ros.torque_ctrl_pwm_friction_ros);
+        plug(torque_ctrl.smoothSignDq,            ros.torque_ctrl_smoothSignDq_ros);
         plug(torque_ctrl.predictedJointsTorques,  ros.torque_ctrl_predictedJointsTorques_ros);
         plug(torque_ctrl.controlCurrent,          ros.torque_ctrl_controlCurrent_ros);
         plug(torque_ctrl.desiredCurrent,          ros.torque_ctrl_desiredCurrent_ros);
@@ -271,8 +277,14 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(traj_gen.ddq,                ros.traj_gen_ddq_ros);
         plug(traj_gen.fRightFoot,         ros.traj_gen_fRightFoot_ros);
     if(ctrl_manager!=None):
-        ros.add('vector', 'ctrl_manager_pwmDes_ros',    'ctrl_manager_pwmDes');
-        plug(ctrl_manager.pwmDes,    ros.ctrl_manager_pwmDes_ros);
+        ros.add('vector', 'ctrl_manager_pwmDes_ros',                'ctrl_manager_pwmDes');
+        ros.add('vector', 'ctrl_manager_pwmDesSafe_ros',                'ctrl_manager_pwmDesSafe');
+        ros.add('vector', 'ctrl_manager_signOfControlFiltered_ros', 'ctrl_manager_signOfControlFiltered');
+        ros.add('vector', 'ctrl_manager_signOfControl_ros',         'ctrl_manager_signOfControl');
+        plug(ctrl_manager.pwmDes,                   ros.ctrl_manager_pwmDes_ros);
+        plug(ctrl_manager.pwmDesSafe,                   ros.ctrl_manager_pwmDesSafe_ros);
+        plug(ctrl_manager.signOfControlFiltered,    ros.ctrl_manager_signOfControlFiltered_ros);
+        plug(ctrl_manager.signOfControl,            ros.ctrl_manager_signOfControl_ros);
     if(inv_dyn!=None):
         ros.add('vector', 'inv_dyn_tauDes_ros',    'inv_dyn_tauDes');
         ros.add('vector', 'inv_dyn_tauFF_ros',     'inv_dyn_tauFF');

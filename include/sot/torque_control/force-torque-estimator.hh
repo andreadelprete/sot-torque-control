@@ -195,6 +195,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(contactWrenchLeftHand,   ml::Vector);
         DECLARE_SIGNAL_OUT(contactWrenchRightHand,  ml::Vector);
         DECLARE_SIGNAL_OUT(contactWrenchBody,       ml::Vector);
+        DECLARE_SIGNAL_OUT(currentFiltered,         ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorques,           ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorquesFromMotorModel,    ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorquesFromInertiaModel,  ml::Vector);

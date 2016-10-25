@@ -14,7 +14,7 @@ namespace dynamicgraph {
                                         double Kt_p, double Kt_n,
                                         double Kf_p, double Kf_n,
                                         double Kv_p, double Kv_n,
-                                        double Ka_p, double Ka_n)
+                                        double Ka_p, double Ka_n, unsigned int poly)
         {
             assert(Kt_p>0.0  && "Kt_p should be > 0");
             assert(Kt_n>0.0  && "Kt_n should be > 0");
@@ -25,7 +25,7 @@ namespace dynamicgraph {
             assert(Ka_p>=0.0 && "Ka_p should be >= 0");
             assert(Ka_n>=0.0 && "Ka_n should be >= 0");
 
-            double signDq = this->smoothSign(dq,0.1); //in [-1;1]
+            double signDq = this->smoothSign(dq,0.1,poly); //in [-1;1]
             double current;
 
             //Smoothly set Coefficients according to velocity sign
@@ -43,7 +43,7 @@ namespace dynamicgraph {
                                        double Kt_p, double Kt_n,
                                        double Kf_p, double Kf_n,
                                        double Kv_p, double Kv_n,
-                                       double Ka_p, double Ka_n)
+                                       double Ka_p, double Ka_n, unsigned int poly)
         {
             assert(Kt_p>0.0  && "Kt_p should be > 0");
             assert(Kt_n>0.0  && "Kt_n should be > 0");
@@ -54,7 +54,7 @@ namespace dynamicgraph {
             assert(Ka_p>=0.0 && "Ka_p should be >= 0");
             assert(Ka_n>=0.0 && "Ka_n should be >= 0");
             
-            double signDq = this->smoothSign(dq,0.1); //in [-1;1]
+            double signDq = this->smoothSign(dq,0.1,poly); //in [-1;1]
             double torque;
 
             //Smoothly set Coefficients according to velocity sign
@@ -68,15 +68,17 @@ namespace dynamicgraph {
             return torque;
         }
 
-        inline double MotorModel::smoothSign(double value, double  threshold)
+        double MotorModel::smoothSign(double value, double  threshold, unsigned int poly)
         {
             if(value>threshold)
                 return 1.0;
             else if(value<-threshold)
                 return -1.0;
             double a = value/threshold;
+            if (poly == 1) return a;
+            if (poly == 2 && value >  0) return  a*a;
+            if (poly == 2 && value <= 0) return -a*a;
             return a*a*a;
-            //return pow(value/threshold,3);
         }
     } // namespace torque_control
   } // namespace sot

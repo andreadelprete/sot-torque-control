@@ -90,9 +90,9 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(jointsTorquesDesired,   ml::Vector);      /// desired joints torques tauDes
         DECLARE_SIGNAL_IN(measuredCurrent,        ml::Vector);      /// measured current in amps
         DECLARE_SIGNAL_IN(KpTorque,               ml::Vector);      /// proportional gain for torque feedback controller
-        DECLARE_SIGNAL_IN(KiTorque,               ml::Vector);      /// integral gain for torque feedback controller      /!\ TODO implement 
+        DECLARE_SIGNAL_IN(KiTorque,               ml::Vector);      /// integral gain for torque feedback controller
         DECLARE_SIGNAL_IN(KpCurrent,              ml::Vector);      /// proportional gain for current feedback controller
-        DECLARE_SIGNAL_IN(KiCurrent,              ml::Vector);      /// integral gain for current feedback controller     /!\ TODO implement
+        DECLARE_SIGNAL_IN(KiCurrent,              ml::Vector);      /// integral gain for current feedback controller
  
 //        DECLARE_SIGNAL_IN(dq_threshold,           ml::Vector);      /// velocity sign threshold
 //        DECLARE_SIGNAL_IN(ddq_threshold,          ml::Vector);      /// acceleration sign threshold
@@ -110,7 +110,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(motorParameterKv_n, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKa_p, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKa_n, ml::Vector);
-
+        DECLARE_SIGNAL_IN(polySignDq,         ml::Vector);
         /// input from inverse dynamics controller for computing
         /// monitoring signals deltaQ_ff, deltaQ_fb
         DECLARE_SIGNAL_IN(tauFF,                ml::Vector);
@@ -172,8 +172,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(pwm_ff,               ml::Vector);  /// k_tau*tauFF,                       part of pwm due to tauFF
         DECLARE_SIGNAL_OUT(pwm_fb,               ml::Vector);  /// k_tau*(tauFB +k_p*(tauDes - tau)), part of pwm due to tauFB
         DECLARE_SIGNAL_OUT(pwm_friction,         ml::Vector);  /// k_v*dq,                            part of pwm due to friction compensation
-
-//        DECLARE_SIGNAL_OUT(smoothSignDq,            ml::Vector);  /// smooth approximation of sign(dq)
+        DECLARE_SIGNAL_OUT(smoothSignDq,         ml::Vector); /// smooth approximation of sign(dq)
 //        DECLARE_SIGNAL_OUT(smoothSignDdq,           ml::Vector);  /// smooth approximation of sign(ddq)
 
       protected:

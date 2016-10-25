@@ -32,7 +32,7 @@ namespace dynamicgraph
                              << m_motorParameterKt_pSIN << m_motorParameterKt_nSIN \
                              << m_motorParameterKf_pSIN << m_motorParameterKf_nSIN \
                              << m_motorParameterKv_pSIN << m_motorParameterKv_nSIN \
-                             << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN
+                             << m_motorParameterKa_pSIN << m_motorParameterKa_nSIN <<  m_polySignDqSIN
 //                              <<m_f_k1pSIN << m_f_k2pSIN << m_f_k3pSIN << m_f_k1nSIN << m_f_k2nSIN << m_f_k3nSIN << \
 //                                m_f_q1pSIN << m_f_q2pSIN << m_f_q3pSIN << m_f_q1nSIN << m_f_q2nSIN << m_f_q3nSIN << \
 //                                m_f_tau1pSIN << m_f_tau2pSIN << m_f_tau1nSIN << m_f_tau2nSIN << \
@@ -51,7 +51,7 @@ namespace dynamicgraph
 
 #define ALL_OUTPUT_SIGNALS      m_desiredCurrentSOUT << m_controlCurrentSOUT << m_predictedJointsTorquesSOUT << \
                                 m_predictedPwmSOUT << m_predictedPwm_tauSOUT << \
-                                m_pwm_ffSOUT << m_pwm_fbSOUT << m_pwm_frictionSOUT
+                                m_pwm_ffSOUT << m_pwm_fbSOUT << m_pwm_frictionSOUT << m_smoothSignDqSOUT
 
 #define N_JOINTS 30
 
@@ -83,9 +83,9 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(jointsTorquesDesired,   ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(measuredCurrent,        ml::Vector) 
         ,CONSTRUCT_SIGNAL_IN(KpTorque,                     ml::Vector)   // proportional gain for torque feedback controller
-        ,CONSTRUCT_SIGNAL_IN(KiTorque,                     ml::Vector)   // integral gain for torque feedback controller      /!\ TODO implement 
+        ,CONSTRUCT_SIGNAL_IN(KiTorque,                     ml::Vector)   // integral gain for torque feedback controller
         ,CONSTRUCT_SIGNAL_IN(KpCurrent,                     ml::Vector)  // proportional gain for current feedback controller
-        ,CONSTRUCT_SIGNAL_IN(KiCurrent,                     ml::Vector)  // integral gain for current feedback controller     /!\ TODO implement 
+        ,CONSTRUCT_SIGNAL_IN(KiCurrent,                     ml::Vector)  // integral gain for current feedback controller  
         ,CONSTRUCT_SIGNAL_IN(k_tau,                  ml::Vector)// to be del
         ,CONSTRUCT_SIGNAL_IN(k_v,                    ml::Vector)// to be del
         ,CONSTRUCT_SIGNAL_IN(frictionCompensationPercentage, ml::Vector)
@@ -97,6 +97,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(motorParameterKv_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_p, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_n, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(polySignDq        , ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(tauFF,                  ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(tauFB,                  ml::Vector)
         ,CONSTRUCT_SIGNAL_OUT(desiredCurrent,        ml::Vector,   ESTIMATOR_INPUT_SIGNALS <<
@@ -122,6 +123,8 @@ namespace dynamicgraph
                                                                   m_KpTorqueSIN)
         ,CONSTRUCT_SIGNAL_OUT(pwm_friction,        ml::Vector, m_jointsVelocitiesSIN <<
                                                                   m_k_vSIN)
+        ,CONSTRUCT_SIGNAL_OUT(smoothSignDq,        ml::Vector, m_jointsVelocitiesSIN )
+
 
       {
         Entity::signalRegistration( ALL_INPUT_SIGNALS << ALL_OUTPUT_SIGNALS);
@@ -245,6 +248,8 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKv_n, m_motorParameterKv_nSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKa_p, m_motorParameterKa_pSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(motorParameterKa_n, m_motorParameterKa_nSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(polySignDq        , m_polySignDqSIN(iter));
+
 
 //        EIGEN_CONST_VECTOR_FROM_SIGNAL(activeJoints,  m_activeJointsSIN(iter));
 //        EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq,           m_jointsAccelerationsSIN(iter));
@@ -266,7 +271,7 @@ namespace dynamicgraph
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
                                                          motorParameterKf_p(i)*frictionCompensationPercentage(i), motorParameterKf_n(i)*frictionCompensationPercentage(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
-                                                         motorParameterKa_p(i), motorParameterKa_n(i) );
+                                                         motorParameterKa_p(i), motorParameterKa_n(i) , polySignDq(i));
             }
         else if(dq.size()==N_JOINTS+6)
             for(int i=0; i<N_JOINTS; i++)
@@ -275,7 +280,7 @@ namespace dynamicgraph
                                                          motorParameterKt_p(i), motorParameterKt_n(i),
                                                          motorParameterKf_p(i)*frictionCompensationPercentage(i), motorParameterKf_n(i)*frictionCompensationPercentage(i),
                                                          motorParameterKv_p(i), motorParameterKv_n(i),
-                                                         motorParameterKa_p(i), motorParameterKa_n(i) );
+                                                         motorParameterKa_p(i), motorParameterKa_n(i), polySignDq(i));
             }
             else
           SEND_ERROR_STREAM_MSG("Unexpected size of signal dq: "+toString(dq.size()));
@@ -390,6 +395,19 @@ namespace dynamicgraph
           s(i) = k_v[i] * dq[i];
         return s;
       }
+
+
+      DEFINE_SIGNAL_OUT_FUNCTION(smoothSignDq, ml::Vector)
+      {
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dq,            m_jointsVelocitiesSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(polySignDq,    m_polySignDqSIN(iter));
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(int i=0; i<N_JOINTS; i++)
+          s(i) = motorModel.smoothSign(dq[i], 0.1, polySignDq[i]);
+        return s;
+      }
+
 
 //      DEFINE_SIGNAL_OUT_FUNCTION(smoothSignDq, ml::Vector)
 //      {

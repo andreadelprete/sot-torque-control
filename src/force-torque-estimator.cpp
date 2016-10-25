@@ -54,7 +54,8 @@ namespace dynamicgraph
                            << m_jointsTorquesFromMotorModelSOUT \
                            << m_jointsTorquesFromInertiaModelSOUT \
                            << m_baseAccelerationSOUT << m_baseAngularVelocitySOUT \
-                           << m_ftSensRightFootPredictionSOUT
+                           << m_ftSensRightFootPredictionSOUT << m_currentFilteredSOUT         
+
 //Size to be aligned                                 "-------------------------------------------------------"
 #define PROFILE_JOINTS_TORQUES_COMPUTATION           "ForceTorqueEst: tau computation                        "
 #define PROFILE_JOINTS_TORQUES_MOTOR_COMPUTATION     "ForceTorqueEst: tau from motor model computation       "
@@ -101,6 +102,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_p, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
+        ,CONSTRUCT_SIGNAL_OUT(currentFiltered,         ml::Vector, m_currentMeasureSIN)
         ,CONSTRUCT_SIGNAL_OUT(jointsPositions,         ml::Vector, m_q_dq_ddqSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsVelocities,        ml::Vector, m_q_dq_ddqSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsAccelerations,     ml::Vector, m_q_dq_ddqSINNER)
@@ -128,7 +130,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_INNER(torquesFromMotorModel, ml::Vector, MOTOR_PARAMETER_SIGNALS
                                                                    << m_jointsVelocitiesSOUT 
                                                                    << m_jointsAccelerationsSOUT
-                                                                   << m_currentMeasureSIN)
+                                                                   << m_currentFilteredSOUT)
         ,CONSTRUCT_SIGNAL_INNER(q_dq_ddq,              ml::Vector, m_base6d_encodersSIN)
         ,CONSTRUCT_SIGNAL_INNER(w_dv_torso,            ml::Vector, m_accelerometerSIN<<m_gyroscopeSIN)
 
@@ -416,13 +418,8 @@ namespace dynamicgraph
 
         getProfiler().start(PROFILE_JOINTS_TORQUES_MOTOR_COMPUTATION);
         {
-          // copy current measurements from mal to std vectors
-          COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
-          // filter current measurements
-          m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
-          // map filtered current measurements from std to Eigen vectors
-          EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
 
+          const ml::Vector& currentFiltered          = m_currentFilteredSOUT(iter);
           // copy motor model parameters from mal to std vectors
           COPY_VECTOR_TO_ARRAY(m_motorParameterKt_pSIN(iter), m_motorParameterKt_p_std  );
           COPY_VECTOR_TO_ARRAY(m_motorParameterKt_nSIN(iter), m_motorParameterKt_n_std  );
@@ -435,9 +432,8 @@ namespace dynamicgraph
           /// *** Get Joints Torques from gearmotors models
           
           for(int i=0; i<N_JOINTS; i++)
-          {
-
-                  double torqueFromCurrent = motorModel.getTorque(m_currentMeasure_filter_std[i], m_dq(i+6), m_ddq(i+6),
+          {                                     
+                  double torqueFromCurrent = motorModel.getTorque( currentFiltered(i) , m_dq(i+6), m_ddq(i+6),
                                                                    m_motorParameterKt_p_std[i], m_motorParameterKt_n_std[i],
                                                                    m_motorParameterKf_p_std[i], m_motorParameterKf_n_std[i],
                                                                    m_motorParameterKv_p_std[i], m_motorParameterKv_n_std[i],
@@ -750,6 +746,27 @@ namespace dynamicgraph
           s(i) = q_dq_ddq(i);
         return s;
       }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(currentFiltered, ml::Vector) //WORK HERE ************************************************************
+      {
+        sotDEBUG(15)<<"Compute currentFiltered output signal "<<iter<<endl;
+
+        // copy current measurements from mal to std vectors
+        COPY_VECTOR_TO_ARRAY(m_currentMeasureSIN(iter)   ,  m_currentMeasure_std   );
+        // filter current measurements
+        m_currentMeasureFilter->estimate(m_currentMeasure_filter_std, m_currentMeasure_std);
+        // map filtered current measurements from std to Eigen vectors
+        EIGEN_VECTOR_FROM_STD_VECTOR(currentMeasure_eig, m_currentMeasure_filter_std);
+
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+        for(int i=0; i<N_JOINTS; i++)
+          s(i) = m_currentMeasure_filter_std[i];
+        return s;
+      }
+
+
+
 
       DEFINE_SIGNAL_OUT_FUNCTION(jointsVelocities, ml::Vector)
       {
