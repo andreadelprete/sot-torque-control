@@ -381,54 +381,5 @@ def reset_tracer(device,tracer):
     tracer = create_tracer(device);
     return tracer;
     
-def go_to_zero_position(traj_gen):
-# Python interpreter can't deal with input(..) ??
-#    ret = input('Are you sure you want to put the robot in zero position? All joints will move: [y/N]')
-#    if ret!="y" : 
-#        print('Cancel zero position')
-#        return
-
-    #put the robot in position q0
-    # RLEG TO 0 **********************
-    traj_gen.moveJoint('rhy',0.0,10.0) #0
-    traj_gen.moveJoint('rhr',0.0,10.0) #1
-    traj_gen.moveJoint('rhp',0.0,10.0) #2
-    traj_gen.moveJoint('rk' ,0.0,10.0) #3
-    traj_gen.moveJoint('rap',0.0,10.0) #4
-    traj_gen.moveJoint('rar',0.0,10.0) #5
-
-    # LLEG TO 0 **********************
-    traj_gen.moveJoint('lhy',0.0,10.0) #6
-    traj_gen.moveJoint('lhr',0.0,10.0) #7
-    traj_gen.moveJoint('lhp',0.0,10.0) #8
-    traj_gen.moveJoint('lk' ,0.0,10.0) #9
-    traj_gen.moveJoint('lap',0.0,10.0) #10
-    traj_gen.moveJoint('lar',0.0,10.0) #11
-
-    # TORSO TO 0
-    traj_gen.moveJoint('ty' ,0.0,10.0) #12
-    traj_gen.moveJoint('tp' ,0.0,10.0) #13
-
-    # HEAD TO 0
-    traj_gen.moveJoint('hy' ,0.0,10.0) #14
-    traj_gen.moveJoint('hp' ,0.0,10.0) #15
-
-    # RARM TO 0 **********************
-    traj_gen.moveJoint('rsp',0.0,10.0) #16
-    traj_gen.moveJoint('rsr',0.0,10.0) #17
-    traj_gen.moveJoint('rsy',0.0,10.0) #18
-    traj_gen.moveJoint('re' ,0.0,10.0) #19
-    traj_gen.moveJoint('rwy',0.0,10.0) #20
-    traj_gen.moveJoint('rwp',0.0,10.0) #21
-    traj_gen.moveJoint('rh' ,0.3,10.0) #22
-
-    # LARM TO 0 **********************
-    traj_gen.moveJoint('lsp',0.0,10.0) #23
-    traj_gen.moveJoint('lsr',0.0,10.0) #24
-    traj_gen.moveJoint('lsy',0.0,10.0) #25
-    traj_gen.moveJoint('le' ,0.0,10.0) #26
-    traj_gen.moveJoint('lwy',0.0,10.0) #27
-    traj_gen.moveJoint('lwp',0.0,10.0) #28
-    traj_gen.moveJoint('lh' ,0.3,10.0) #29
 
 

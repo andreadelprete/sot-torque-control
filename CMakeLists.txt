@@ -153,6 +153,7 @@ INSTALL(FILES python/test_estimator.py
               python/test_estimator_sim.py
               python/hrp2_motors_parameters.py
               python/hrp2_joint_pos_ctrl_gains.py
+              python/identification_utils.py
          DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/torque_control/)
 
 ADD_SUBDIRECTORY(src)
