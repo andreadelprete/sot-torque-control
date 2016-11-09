@@ -134,8 +134,81 @@ def identify_rhp_dynamic(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
+#(-0.0349066, 2.61799);  #// right knee ********************************
+def identify_rk_static(traj_gen):
+  staticTime=20.0
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  traj_gen.moveJoint('rk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  time.sleep(staticTime)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
 
+def identify_rk_dynamic(traj_gen):
+  (joint, min_pos, max_pos) = ('rk', 0., 2.5)
+  N=3;
+  times = [5.0,4.0,3.0]
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+#(-1.309, 0.733038);     #// right ankle pitch *************************
+def identify_rap_static(traj_gen):
+  staticTime=20.0
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  traj_gen.moveJoint('rk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  time.sleep(staticTime)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
 
+def identify_rap_dynamic(traj_gen):
+  (joint, min_pos, max_pos) = ('rap', -1.2, 0.6)
+  N=3;
+  times = [5.0,4.0,3.0]
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  traj_gen.moveJoint('rk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+
+#(-0.349066, 0.610865);  #// right ankle roll **************************
+def identify_rar_static(traj_gen):
+  staticTime=20.0
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  traj_gen.moveJoint('rk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  time.sleep(staticTime)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+
+def identify_rar_dynamic(traj_gen):
+  (joint, min_pos, max_pos) = ('rar', -0.25, 0.5)
+  N=3;
+  times = [5.0,4.0,3.0]
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('rhp',-1.57,5.0)
+  traj_gen.moveJoint('rk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
 
 
 
