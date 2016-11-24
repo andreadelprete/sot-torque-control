@@ -1,7 +1,7 @@
 import time
 import sys
 from dynamic_graph.sot.torque_control.identification_utils import *
-
+from subprocess import call
 
 jID = { "rhy" : 0,
         "rhr" : 1,
@@ -58,8 +58,7 @@ def doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc'):
 
 
 #(-0.785398, 0.523599);  #// right hip yaw *****************************
-def identify_rhy_static(traj_gen):
-  staticTime=20.0
+def identify_rhy_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
@@ -68,24 +67,20 @@ def identify_rhy_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rhy_dynamic(traj_gen):
+def identify_rhy_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   (joint, min_pos, max_pos) = ('rhy', -0.7, 0.45)
-  N=3;
-  times = [5.0,4.0,3.0,2.5]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('lhr',0.1,3.0)
   time.sleep(3.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
 
 #(-0.610865, 0.349066);  #// right hip roll ****************************
 (joint, min_pos, max_pos) = ('rhr', -0.5, 0.25)
-def identify_rhr_static(traj_gen):
-  staticTime=20.0
+def identify_rhr_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('lhr',0.25,5.0)
@@ -94,10 +89,8 @@ def identify_rhr_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rhr_dynamic(traj_gen):
+def identify_rhr_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0,2.5]):
   (joint, min_pos, max_pos) = ('rhr', -0.5, 0.25)
-  N=3;
-  times = [5.0,4.0,3.0,2.5]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rsp',-1.57,5.0)
@@ -106,14 +99,12 @@ def identify_rhr_dynamic(traj_gen):
   traj_gen.moveJoint('le',-1.57,5.0)
   traj_gen.moveJoint('lhr',0.25,5.0)
   time.sleep(5.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-#(-2.18166, 0.733038);   #// right hip pitch ***************************
-def identify_rhp_static(traj_gen):
-  staticTime=20.0
+#(-2.18166, 0.733038);   #// right hip pitch ***************************:
+def identify_rhp_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   time.sleep(5.0)
@@ -121,22 +112,18 @@ def identify_rhp_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rhp_dynamic(traj_gen):
+def identify_rhp_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   (joint, min_pos, max_pos) = ('rhp', -1.7, 0.6)
-  N=3;
-  times = [5.0,4.0,3.0]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhr',-0.2,5.0)
   time.sleep(5.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
 #(-0.0349066, 2.61799);  #// right knee ********************************
-def identify_rk_static(traj_gen):
-  staticTime=20.0
+def identify_rk_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
@@ -146,21 +133,17 @@ def identify_rk_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rk_dynamic(traj_gen):
+def identify_rk_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   (joint, min_pos, max_pos) = ('rk', 0., 2.5)
-  N=3;
-  times = [5.0,4.0,3.0]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
   time.sleep(5.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 #(-1.309, 0.733038);     #// right ankle pitch *************************
-def identify_rap_static(traj_gen):
-  staticTime=20.0
+def identify_rap_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
@@ -170,23 +153,19 @@ def identify_rap_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rap_dynamic(traj_gen):
+def identify_rap_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   (joint, min_pos, max_pos) = ('rap', -1.2, 0.6)
-  N=3;
-  times = [5.0,4.0,3.0]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
   traj_gen.moveJoint('rk',1.57,5.0)
   time.sleep(5.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
 #(-0.349066, 0.610865);  #// right ankle roll **************************
-def identify_rar_static(traj_gen):
-  staticTime=20.0
+def identify_rar_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
@@ -196,21 +175,16 @@ def identify_rar_static(traj_gen):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 
-def identify_rar_dynamic(traj_gen):
+def identify_rar_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   (joint, min_pos, max_pos) = ('rar', -0.25, 0.5)
-  N=3;
-  times = [5.0,4.0,3.0]
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhp',-1.57,5.0)
   traj_gen.moveJoint('rk',1.57,5.0)
   time.sleep(5.0 + 0.5)
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constAcc')
-  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode='constVel')
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
-
-
 
 def go_to_zero_position(traj_gen,T=10.0):
 # Python interpreter can't deal with input(..) ??
@@ -261,4 +235,20 @@ def go_to_zero_position(traj_gen,T=10.0):
     traj_gen.moveJoint('lwy',0.0,T) #27
     traj_gen.moveJoint('lwp',0.0,T) #28
     traj_gen.moveJoint('lh' ,0.3,T) #29
+
+def deleteDatFilesInTmp():
+  call('rm /tmp/*.dat',shell=True)
+  
+def stopTracerAndCopyFiles(tracer,directory):
+  tracer.stop()
+  tracer.dump()
+  time.sleep(2.0)
+  call('mkdir '         + directory, shell=True)
+  call('mv /tmp/*.dat ' + directory, shell=True)
+
+#deleteDatFilesInTmp()
+#tracer = start_tracer(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, None)
+#do your experiment here
+#stopTracerAndCopyFiles(tracer,directory='/tmp/JOINT0_ID_static')
+
 
