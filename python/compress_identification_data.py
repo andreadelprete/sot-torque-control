@@ -15,7 +15,7 @@ FOLDER_ID = 1;
 EST_DELAY = 0.1;       ''' delay introduced by the estimation in seconds '''
 NJ = 30;                ''' number of joints '''
 DT = 0.001;             ''' sampling period '''
-PLOT_DATA = True;
+PLOT_DATA = False;
 FORCE_ESTIMATE_RECOMPUTATION = True;
 NEGLECT_GYROSCOPE = True;
 NEGLECT_ACCELEROMETER = True;
@@ -46,7 +46,7 @@ if(DATA_SET==2):
         data_folder = '../../rien/';
         JOINT_ID = np.array([16]);
 
-    
+
 FILE_READ_SUCCEEDED = False;    
 DATA_FILE_NAME = 'data';
 TEXT_DATA_FILE_NAME = 'data.txt';
