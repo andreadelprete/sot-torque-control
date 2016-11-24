@@ -10,6 +10,8 @@ from plot_utils import saveCurrentFigure
 import plot_utils
 import matplotlib.pyplot as plt
 from motor_model import Motor_model
+
+
 '''
 motor model :
 i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
@@ -24,6 +26,36 @@ i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
     #~ taufs.append(motor.getCurrent(dq))
 #~ plt.plot(dqs,taufs)
 #~ plt.show()
+jID = { "rhy" : 0,
+        "rhr" : 1,
+        "rhp" : 2,
+        "rk"  : 3,
+        "rap" : 4,
+        "rar" : 5,
+        "lhy" : 6,
+        "lhr" : 7,
+        "lhp" : 8,
+        "lk"  : 9,
+        "lap" : 10,
+        "lar" : 11,
+        "ty"  : 12,
+        "tp"  : 13,
+        "hy"  : 14,
+        "hp"  : 15,
+        "rsp" : 16,
+        "rsr" : 17,
+        "rsy" : 18,
+        "re"  : 19,
+        "rwy" : 20,
+        "rwp" : 21,
+        "rh"  : 22,
+        "lsp" : 23,
+        "lsr" : 24,
+        "lsy" : 25,
+        "le"  : 26,
+        "lwy" : 27,
+        "lwp" : 28,
+        "lh"  : 29 }
 
 Kt_p=np.array(30*(1.0,))
 Kt_n=np.array(30*(1.0,))
@@ -54,7 +86,6 @@ Kf_n[2] = 0.813251
 Ka_p[2] = 0.0
 Ka_n[2] = 0.0
 
-
 motor = Motor_model(Kt_p[2], Kt_n[2], 
                     Kf_p[2], Kf_n[2],
                     Kv_p[2], Kv_n[2],
@@ -76,48 +107,116 @@ def solve1stOrderLeastSquare(x,y):
 def solveLeastSquare(A, b):
     return np.linalg.pinv(A)*np.matrix(b).T;
 
-DATA_SET  = 1;
-FOLDER_ID = 2;
+
 DATA_FILE_NAME = 'data.npz';
 
-ZERO_VELOCITY_THRESHOLD     = 0.1
+ZERO_VELOCITY_THRESHOLD     = 0.3
 ZERO_ACCELERATION_THRESHOLD = 0.1
 ZERO_JERK_THRESHOLD         = 3.0
-SHOW_THRESHOLD_EFFECT = True
+SHOW_THRESHOLD_EFFECT = False
 
-if(DATA_SET==1):
-    if(FOLDER_ID==1):
-        data_folder = '../../results/20160923_165916_Joint2_id_Kt/';
-        JOINT_ID = 2;
-    elif(FOLDER_ID==2):
-        data_folder = '../../results/20160923_170659_Joint2_id_Kv/';
-        JOINT_ID = 2;
-    elif(FOLDER_ID==3):
-        data_folder = '../../results/20160923_135235_Joint2_id_Ka/';
-        JOINT_ID = 2;
-    elif(FOLDER_ID==4):
-        data_folder = '../../results/20160720_134957_rsp_friction_id_ext/';
-        #~ data_folder = '../../results/20160720_143905_rsp_torque_id_noGravity/';
-        #~ data_folder = '../../results/20160712_171735_rsp_const_vel/'
-        #~ data_folder = '../../results/20160712_182523_rsp_const_acc/';
-        JOINT_ID = 16;
-    else:
-        print 'ERROR: UNKNOWN FOLDER_ID';
-if(DATA_SET==2):
-    if(FOLDER_ID==1):
-        #~ data_folder = '../../results/20160720_132041_rsp_torque_id/';
-        #~ data_folder = '../../results/20160720_132429_rsp_torque_id/';
-        data_folder = '../../results/20160720_143905_rsp_torque_id_noGravity/';
-        JOINT_ID = 16;
-    elif(FOLDER_ID==2):
-        #~ data_folder = '../../results/20160720_134957_rsp_friction_id_ext/';
-        data_folder = '../../results/20160722_144631_rsp_const_vel/';
-        JOINT_ID = 16;
-    elif(FOLDER_ID==3):
-        data_folder = '../../rien/';
-        JOINT_ID = 16;
-    else:
-        print 'ERROR: UNKNOWN FOLDER_ID';
+
+#~ JOINT_NAME = 'rhr'; 
+#~ JOINT_NAME = 'rhp'; 
+#~ JOINT_NAME = 'rk'; 
+JOINT_NAME = 'rap'; 
+#~ JOINT_NAME = 'rar'; 
+#~ JOINT_NAME = 'rhy'; 
+
+
+IDENTIFICATION_MODE='static'
+#~ IDENTIFICATION_MODE='vel'
+#~ IDENTIFICATION_MODE='acc'
+#~ 
+if(JOINT_NAME == 'rhr' ):
+    data_folder_static = '../../results/20161114_144232_rhr_static/';
+    data_folder_vel    = '../../results/20161114_150356_rhr_vel/';
+    data_folder_acc    = '../../results/20161114_145456_rhr_acc/';
+if(JOINT_NAME == 'rhp' ):
+    data_folder_static = '../../results/20161114_150722_rhp_static/';
+    data_folder_vel    = '../../results/20161114_151812_rhp_vel/';
+    data_folder_acc    = '../../results/20161114_151259_rhp_acc/';
+if(JOINT_NAME == 'rk' ):
+    data_folder_static = '../../results/20161114_152140_rk_static/';
+    data_folder_vel    = '../../results/20161114_153220_rk_vel/';
+    data_folder_acc    = '../../results/20161114_152706_rk_acc/';
+if(JOINT_NAME == 'rap' ):
+    data_folder_static = '../../results/20161114_153739_rap_static/';
+    data_folder_vel    = '../../results/20161114_154559_rap_vel/';
+    data_folder_acc    = '../../results/20161114_154316_rap_acc/';
+if(JOINT_NAME == 'rar' ):
+    data_folder_static = '../../results/20161114_154945_rar_static/';
+    data_folder_vel    = '../../results/20161114_160038_rar_vel/';
+    data_folder_acc    = '../../results/20161114_155545_rar_acc/';
+if(JOINT_NAME == 'rhy' ):
+    data_folder_static = '../../results/20161114_135332_rhy_static/';
+    data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
+    data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
+    
+    
+    
+if (IDENTIFICATION_MODE=='static') : data_folder = data_folder_static
+if (IDENTIFICATION_MODE=='vel')    : data_folder = data_folder_vel
+if (IDENTIFICATION_MODE=='acc')    : data_folder = data_folder_acc
+
+
+
+#~ 
+#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_144232_rhr_static/'; IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_145456_rhr_acc/';    IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_150356_rhr_vel/';    IDENTIFICATION_MODE='vel'
+#~ 
+#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_150722_rhp_static/'; IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_151259_rhp_acc/';    IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_151812_rhp_vel/';    IDENTIFICATION_MODE='vel'
+#~ 
+#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_152140_rk_static/';  IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_152706_rk_acc/';     IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_153220_rk_vel/';     IDENTIFICATION_MODE='vel'
+#~ 
+#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_153739_rap_static/'; IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_154316_rap_acc/';    IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_154559_rap_vel/';    IDENTIFICATION_MODE='vel'
+#~ 
+#~ 
+#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_154945_rar_static/'; IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_155545_rar_acc/';    IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_160038_rar_vel/';    IDENTIFICATION_MODE='vel'
+#~ 
+#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_135332_rhy_static/'; IDENTIFICATION_MODE='static'
+#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_142351_rhy_acc/';    IDENTIFICATION_MODE='acc'    
+#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_143152_rhy_vel/';    IDENTIFICATION_MODE='vel'
+
+
+JOINT_ID = jID[JOINT_NAME]
+
+'''
+20161114_144232_rhr_static           
+20161114_145456_rhr_acc          
+20161114_150356_rhr_vel     
+      
+20161114_150722_rhp_static   
+20161114_151259_rhp_acc
+20161114_151812_rhp_vel     
+     
+20161114_152140_rk_static        
+20161114_152706_rk_acc            
+20161114_153220_rk_vel     
+     
+20161114_153739_rap_static           
+20161114_154316_rap_acc          
+20161114_154559_rap_vel    
+  
+20161114_154945_rar_static         
+20161114_155545_rar_acc           
+20161114_160038_rar_vel
+
+20161114_135332_rhy_static 
+20161114_142351_rhy_acc
+20161114_143152_rhy_vel                
+'''
+
+   
 DATA_FILE_NAME = 'data_j'+str(JOINT_ID)+'.npz';
 
 #~ 
@@ -201,7 +300,7 @@ maskPosVel = maskPosVel[maskSaturation]
 maskNegVel = maskNegVel[maskSaturation]
 
 #Ktau,Tau0 Identification
-if(FOLDER_ID==1):
+if(IDENTIFICATION_MODE=='static'):
     #Filter current*****************************************************
     win = signal.hann(10)
     filtered_current = signal.convolve(current, win, mode='same')/sum(win)
@@ -251,15 +350,27 @@ if(FOLDER_ID==1):
     plt.plot([min(x),max(x)],[Ktn*min(x)-Kfn ,Ktn*max(x)-Kfn],'g:',lw=3)
     plt.ylabel(y_label)
     plt.xlabel(x_label)
-    
+    plt.title('Static experiment - Joint '+JOINT_NAME)
     print 'Kt_p[%d] = %f' % (JOINT_ID,Ktp);
     print 'Kt_n[%d] = %f' % (JOINT_ID,Ktn);
     print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    #save parameters for next identification level**********************
+    np.savez(data_folder+'motor_param_'+JOINT_NAME+'.npz',Ktp=Ktp,Ktn=Ktn)
+    plt.savefig(data_folder+"static_"+JOINT_NAME+".jpg")
     plt.show()
 
 #Kd Identification 
-if(FOLDER_ID==2):
+if(IDENTIFICATION_MODE=='vel'):
+    #load parameters from last identification level*********************
+    try:
+        data_motor_param = np.load(data_folder_static+'motor_param_'+JOINT_NAME+'.npz')
+        Kt_p[JOINT_ID]=abs(data_motor_param['Ktp'].item())
+        Kt_n[JOINT_ID]=abs(data_motor_param['Ktn'].item())
+    except IOError:
+        print "Impossible to read data file %s" % (data_folder_static+'motor_param_'+JOINT_NAME+'.npz');
+        sys.exit("Run identification on static experiments.");
+    
     #Filter current*****************************************************
     win = signal.hann(10)
     filtered_current = signal.convolve(current, win, mode='same') / sum(win)
@@ -319,10 +430,11 @@ if(FOLDER_ID==2):
     print 'Kv_n[%d] = %f' % (JOINT_ID,Kvn);
     print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    plt.savefig(data_folder+"vel_"+JOINT_NAME+".jpg")
     plt.show()
 
 #J Identification
-if(FOLDER_ID==3):
+if(IDENTIFICATION_MODE=='acc'):
     #Filter current*****************************************************
     win = signal.hann(10)
     filtered_current = signal.convolve(current, win, mode='same') / sum(win)
@@ -386,7 +498,7 @@ if(FOLDER_ID==3):
     plt.show()
 
 #model vs measurement
-if(FOLDER_ID>0):
+if(False):
     tau_motor=np.zeros(len(tau))
     i_motor=np.zeros(len(current))
     
