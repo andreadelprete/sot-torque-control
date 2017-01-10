@@ -211,12 +211,12 @@ namespace dynamicgraph
               ||( (pwmDes(i) < 0) && ( m_signIsPos[i]) ))  //If not the same sign
             {
               m_changeSignCpt[i]++; //cpt the straight-times we disagree on sign
-              if (i == 2) printf("inc cpt=%d \t pos=%d\r\n", m_changeSignCpt[i],m_signIsPos[i]);
+              //if (i == 2) printf("inc cpt=%d \t pos=%d\r\n", m_changeSignCpt[i],m_signIsPos[i]);
             }
             else
             { 
               m_changeSignCpt[i] = 0; //we agree
-              if (i == 2) printf("rst cpt=%d \t pos=%d \t win=%d\r\n", m_changeSignCpt[i],m_signIsPos[i],m_winSizeAdapt[i]);
+              //if (i == 2) printf("rst cpt=%d \t pos=%d \t win=%d\r\n", m_changeSignCpt[i],m_signIsPos[i],m_winSizeAdapt[i]);
               if (m_winSizeAdapt[i]>0) m_winSizeAdapt[i]--;  //decrese reactivity (set a smaller windows)
             }
             if (m_changeSignCpt[i] > m_winSizeAdapt[i]) 
@@ -225,7 +225,7 @@ namespace dynamicgraph
               m_signIsPos[i] = !m_signIsPos[i];//let's change our mind
               m_changeSignCpt[i] = 0; //we just agreed
               m_winSizeAdapt[i]  = signWindowsFilterSize(i); //be not so reactive for next event (set a large windows size)
-              if (i == 2) printf("toogle signIsPos=%d\r\n", m_signIsPos[i]);
+              //if (i == 2) printf("toogle signIsPos=%d\r\n", m_signIsPos[i]);
             }
             //*****************************************
 
