@@ -115,19 +115,25 @@ ZERO_ACCELERATION_THRESHOLD = 0.1
 ZERO_JERK_THRESHOLD         = 3.0
 SHOW_THRESHOLD_EFFECT = False
 
-
+#~ JOINT_NAME = 'rhy'; 
 #~ JOINT_NAME = 'rhr'; 
 #~ JOINT_NAME = 'rhp'; 
 #~ JOINT_NAME = 'rk'; 
-JOINT_NAME = 'rap'; 
-#~ JOINT_NAME = 'rar'; 
-#~ JOINT_NAME = 'rhy'; 
+#~ JOINT_NAME = 'rap'; 
+JOINT_NAME = 'rar'; 
 
 
-IDENTIFICATION_MODE='static'
-#~ IDENTIFICATION_MODE='vel'
+#~ 
+#~ IDENTIFICATION_MODE='static'
+IDENTIFICATION_MODE='vel'
 #~ IDENTIFICATION_MODE='acc'
 #~ 
+
+
+if(JOINT_NAME == 'rhy' ):
+    data_folder_static = '../../results/20161114_135332_rhy_static/';
+    data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
+    data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
 if(JOINT_NAME == 'rhr' ):
     data_folder_static = '../../results/20161114_144232_rhr_static/';
     data_folder_vel    = '../../results/20161114_150356_rhr_vel/';
@@ -148,10 +154,7 @@ if(JOINT_NAME == 'rar' ):
     data_folder_static = '../../results/20161114_154945_rar_static/';
     data_folder_vel    = '../../results/20161114_160038_rar_vel/';
     data_folder_acc    = '../../results/20161114_155545_rar_acc/';
-if(JOINT_NAME == 'rhy' ):
-    data_folder_static = '../../results/20161114_135332_rhy_static/';
-    data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
-    data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
+
     
     
     
@@ -365,8 +368,8 @@ if(IDENTIFICATION_MODE=='vel'):
     #load parameters from last identification level*********************
     try:
         data_motor_param = np.load(data_folder_static+'motor_param_'+JOINT_NAME+'.npz')
-        Kt_p[JOINT_ID]=abs(data_motor_param['Ktp'].item())
-        Kt_n[JOINT_ID]=abs(data_motor_param['Ktn'].item())
+        Kt_p[JOINT_ID]=(data_motor_param['Ktp'].item())
+        Kt_n[JOINT_ID]=(data_motor_param['Ktn'].item())
     except IOError:
         print "Impossible to read data file %s" % (data_folder_static+'motor_param_'+JOINT_NAME+'.npz');
         sys.exit("Run identification on static experiments.");
@@ -376,8 +379,8 @@ if(IDENTIFICATION_MODE=='vel'):
     filtered_current = signal.convolve(current, win, mode='same') / sum(win)
     #~ plt.plot(current)
     #~ plt.plot(filtered_current)
-    current = filtered_current
-
+    #~ current = filtered_current
+    #~ plt.show()
     # Mask valid data***************************************************
     m = len(dq);
     # remove high acceleration
