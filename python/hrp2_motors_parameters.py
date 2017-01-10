@@ -17,11 +17,67 @@ Kv_n=zeros(NJ);
 Ka_p=zeros(NJ);
 Ka_n=zeros(NJ);
 # PARAMETERS OF R_hip_p JOINT 2
-Kt_p[2]=0.083642
-Kt_n[2]=0.079290
-Kf_p[2]=0.5
-Kf_n[2]=1.0
+#Kt_p[2]=0.083642
+#Kt_n[2]=0.079290
+#Kf_p[2]=0.5
+#Kf_n[2]=1.0
 
+Kt_p[0] = 0.055296
+Kt_n[0] = 0.053063
+Kv_p[0] = 0.622347
+Kv_n[0] = 0.631519
+Kf_p[0] = 0.367172
+Kf_n[0] = 0.179646
+
+Kt_p[1] = 0.061086
+Kt_n[1] = 0.057935
+Kv_p[1] = 0.421158
+Kv_n[1] = 0.969622
+Kf_p[1] = 0.286021
+Kf_n[1] = 0.581164
+
+Kt_p[2] = 0.094594
+Kt_n[2] = 0.073833
+Kv_p[2] = 0.136035
+Kv_n[2] = 0.838969
+Kf_p[2] = 0.391538
+Kf_n[2] = 1.024559
+
+Kt_p[3] = 0.074166
+Kt_n[3] = 0.071020
+Kv_p[3] = 0.417404
+Kv_n[3] = 0.410628
+Kf_p[3] = 0.581185
+Kf_n[3] = 0.653799
+
+Kt_p[4] = 0.082799
+Kt_n[4] = 0.088775
+Kv_p[4] = 0.197908
+Kv_n[4] = 0.235906
+Kf_p[4] = 0.589244
+Kf_n[4] = 0.253694
+
+Kt_p[5] = 0.155817
+Kt_n[5] = 0.156519
+Kv_p[5] = 0.487505
+Kv_n[5] = 0.450785
+Kf_p[5] = 0.567581
+Kf_n[5] = 0.351654
+
+# take averages for p and n
+for i in range(6):
+    Kt_av = (Kt_n[i] + Kt_p[i])/2
+    Kt_n[i]=Kt_av
+    Kt_p[i]=Kt_av
+    
+    Kv_av = (Kv_n[i] + Kv_p[i])/2
+    Kv_n[i]=Kv_av
+    Kv_p[i]=Kv_av
+    
+    Kf_av = (Kf_n[i] + Kf_p[i])/2
+    Kf_n[i]=Kf_av
+    Kf_p[i]=Kf_av
+    
 k_p_current = zeros(NJ);    # current control proportional gains
 k_p_torque  = zeros(NJ);    # torque  control proportional gains
 k_tau = zeros(NJ);  # motor torque constant
