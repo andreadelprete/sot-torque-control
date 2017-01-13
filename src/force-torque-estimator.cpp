@@ -38,8 +38,8 @@ namespace dynamicgraph
 
 #define ALL_INPUT_SIGNALS m_base6d_encodersSIN << m_accelerometerSIN << m_gyroscopeSIN \
                           << m_ddqRefSIN << m_dqRefSIN << m_currentMeasureSIN \
-                          << m_saturationCurrentSIN << m_wCurrentTrustSIN << FORCE_TORQUE_SENSORS_SIGNALS \
-                          << MOTOR_PARAMETER_SIGNALS
+                          << m_saturationCurrentSIN << m_wCurrentTrustSIN << m_tauDesSIN \
+                          << FORCE_TORQUE_SENSORS_SIGNALS << MOTOR_PARAMETER_SIGNALS
 
 #define KINEMATIC_OUTPUT_SIGNALS \
                           m_jointsPositionsSOUT << m_jointsVelocitiesSOUT \
@@ -54,7 +54,8 @@ namespace dynamicgraph
                            << m_jointsTorquesFromMotorModelSOUT \
                            << m_jointsTorquesFromInertiaModelSOUT \
                            << m_baseAccelerationSOUT << m_baseAngularVelocitySOUT \
-                           << m_ftSensRightFootPredictionSOUT << m_currentFilteredSOUT         
+                           << m_ftSensRightFootPredictionSOUT << m_currentFilteredSOUT \
+                           << m_dynamicsErrorSOUT
 
 //Size to be aligned                                 "-------------------------------------------------------"
 #define PROFILE_JOINTS_TORQUES_COMPUTATION           "ForceTorqueEst: tau computation                        "
@@ -101,6 +102,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_IN(motorParameterKv_n, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_p, ml::Vector)
         ,CONSTRUCT_SIGNAL_IN(motorParameterKa_n, ml::Vector)
+        ,CONSTRUCT_SIGNAL_IN(tauDes, ml::Vector)
         ,CONSTRUCT_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector, m_torques_wrenchesSINNER)
         ,CONSTRUCT_SIGNAL_OUT(currentFiltered,         ml::Vector, m_currentMeasureSIN)
         ,CONSTRUCT_SIGNAL_OUT(jointsPositions,         ml::Vector, m_q_dq_ddqSINNER)
@@ -120,6 +122,7 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_OUT(jointsTorques,           ml::Vector, m_torques_wrenchesSINNER << m_torquesFromMotorModelSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromMotorModel,   ml::Vector, m_torquesFromMotorModelSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromInertiaModel, ml::Vector, m_torques_wrenchesSINNER)
+        ,CONSTRUCT_SIGNAL_OUT(dynamicsError, ml::Vector, m_contactWrenchBodySOUT << m_jointsTorquesSOUT << m_tauDesSIN)
 
         ,CONSTRUCT_SIGNAL_INNER(torques_wrenches,      ml::Vector, FORCE_TORQUE_SENSORS_SIGNALS
                                                                 <<KINEMATIC_OUTPUT_SIGNALS
@@ -958,6 +961,26 @@ namespace dynamicgraph
           }
         }
         getProfiler().stop(PROFILE_JOINTS_TORQUES_COMPUTATION);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(dynamicsError, ml::Vector)
+      {
+        sotDEBUG(15)<<"Compute dynamicsError output signal "<<iter<<endl;
+        if(s.size()!=N_JOINTS+6)
+          s.resize(N_JOINTS+6);
+
+        if(!m_tauDesSIN.isPlugged())
+          return s;
+
+        const ml::Vector &contactWrenchBody = m_contactWrenchBodySOUT(iter);
+        const ml::Vector &tau    = m_jointsTorquesSOUT(iter);
+        const ml::Vector &tauDes = m_tauDesSIN(iter);
+
+        for(int i=0; i<6; i++)
+          s(i) = -1.0*contactWrenchBody(i);
+        for(int i=0; i<N_JOINTS; i++)
+          s(6+i) = tauDes(i) - tau(i);
         return s;
       }
 

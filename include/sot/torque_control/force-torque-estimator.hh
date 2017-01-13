@@ -178,6 +178,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(motorParameterKv_n, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKa_p, ml::Vector);
         DECLARE_SIGNAL_IN(motorParameterKa_n, ml::Vector);
+        DECLARE_SIGNAL_IN(tauDes, ml::Vector);  // desired joint torques
         
         DECLARE_SIGNAL_OUT(ftSensRightFootPrediction,  ml::Vector); /// debug signal
 
@@ -199,6 +200,8 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(jointsTorques,           ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorquesFromMotorModel,    ml::Vector);
         DECLARE_SIGNAL_OUT(jointsTorquesFromInertiaModel,  ml::Vector);
+        DECLARE_SIGNAL_OUT(dynamicsError,  ml::Vector); // error between desired torques and estimated (n+6)
+
         /// The following inner signals are used because this entity has some output signals
         /// whose related quantities are computed at the same time by the same algorithm
         /// (e.g. torques and contact wrenches are computed by the RNEA). to avoid the risk
@@ -346,6 +349,9 @@ namespace dynamicgraph {
          *                        This should be a multiple of timestep.
          * @param delayGyro Delay (in seconds) introduced by the low-pass filtering of the gyroscope.
          *                        This should be a multiple of timestep.
+         * @param delayCurrent Delay (in seconds) introduced by the low-pass filtering of the current sensors.
+         *                        This should be a multiple of timestep.
+         * @param computeForceSensorsOffsets If true it computes the offset on the F/T sensors at the beginning.
          * @note The estimationDelay is half of the length of the window used for the
          * polynomial fitting. The larger the delay, the smoother the estimations.
          */
