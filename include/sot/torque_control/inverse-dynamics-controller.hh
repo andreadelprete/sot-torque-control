@@ -98,6 +98,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(fRightHand,       ml::Vector); /// right gripper 6d estimated force
         DECLARE_SIGNAL_IN(fLeftHand,        ml::Vector); /// left gripper 6d estimated force
         DECLARE_SIGNAL_IN(controlledJoints, ml::Vector); /// mask with 1 for controlled joints, 0 otherwise
+        DECLARE_SIGNAL_IN(dynamicsError,    ml::Vector); /// estimated error of the robot dynamic model (n+6)
 
         DECLARE_SIGNAL_OUT(tauDes,      ml::Vector);  /// M*ddqRef + h - J^T*(fRef+Kf*e_f) + Kp*e_q + Kd*de_q
         // DEBUG SIGNALS

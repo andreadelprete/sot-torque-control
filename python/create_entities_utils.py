@@ -62,7 +62,6 @@ def create_estimator(device, dt, delay, traj_gen=None):
     estimator.motorParameterKv_n.value  = tuple(Kv_n)
     estimator.motorParameterKa_p.value  = tuple(Ka_p)
     estimator.motorParameterKa_n.value  = tuple(Ka_n)
-    
 
     estimator.init(dt,delay,delay,delay,delay,delay,True);
     
@@ -83,7 +82,6 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.k_tau.value = tuple(k_tau);
     torque_ctrl.k_v.value   = tuple(k_v);
     torque_ctrl.frictionCompensationPercentage.value = NJ*(0.8,); # 80%
-    
 
     torque_ctrl.motorParameterKt_p.value  = tuple(Kt_p)
     torque_ctrl.motorParameterKt_n.value  = tuple(Kt_n)
@@ -117,6 +115,9 @@ def create_inverse_dynamics(device, estimator, torque_ctrl, traj_gen, dt=0.001):
     plug(inv_dyn_ctrl.tauDes,           torque_ctrl.jointsTorquesDesired);
     plug(inv_dyn_ctrl.tauFF,            torque_ctrl.tauFF);
     plug(inv_dyn_ctrl.tauFB,            torque_ctrl.tauFB);
+    plug(inv_dyn_ctrl.tauDes,           estimator.tauDes);
+    plug(estimator.dynamicsError,       inv_dyn_ctrl.dynamicsError);
+    inv_dyn_ctrl.dynamicsError.value = (NJ+6)*(0.0,);       # comment this line to activate compensation of dynamics error
     inv_dyn_ctrl.Kp.value = tuple(k_s); # joint proportional gains
     inv_dyn_ctrl.Kd.value = tuple(k_d); # joint derivative gains
     inv_dyn_ctrl.Kf.value = tuple(k_f); # force proportional gains

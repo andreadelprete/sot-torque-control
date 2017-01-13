@@ -47,7 +47,8 @@ namespace dynamicgraph
                           m_baseAngularVelocitySIN << m_baseAccelerationSIN
 
 #define INPUT_SIGNALS     STATE_SIGNALS << REF_JOINT_SIGNALS << REF_FORCE_SIGNALS << \
-                          FORCE_SIGNALS << GAIN_SIGNALS << m_controlledJointsSIN
+                          FORCE_SIGNALS << GAIN_SIGNALS << m_controlledJointsSIN << \
+                          m_dynamicsErrorSIN
 
 #define OUTPUT_SIGNALS m_tauDesSOUT << m_ddqDesSOUT << m_qErrorSOUT << \
                        m_tauFFSOUT << m_tauFBSOUT << m_tauFB2SOUT
@@ -86,6 +87,7 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(fRightHand,          ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(fLeftHand,           ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(controlledJoints,    ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(dynamicsError,       ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(tauDes,             ml::Vector, m_tauFBSOUT<<
                                                                   m_tauFFSOUT)
             ,CONSTRUCT_SIGNAL_OUT(tauFF,            ml::Vector, STATE_SIGNALS<<
@@ -199,7 +201,7 @@ namespace dynamicgraph
       /* --- SIGNALS ------------------------------------------------------- */
       /* ------------------------------------------------------------------- */
 
-      DEFINE_SIGNAL_OUT_FUNCTION(tauDes,ml::Vector)
+      DEFINE_SIGNAL_OUT_FUNCTION(tauDes, ml::Vector)
       {
         if(!m_initSucceeded)
         {
@@ -211,18 +213,19 @@ namespace dynamicgraph
         {
           const ml::Vector& tauFB  = m_tauFBSOUT(iter); // n
           const ml::Vector& tauFF  = m_tauFFSOUT(iter); // n
+          const ml::Vector& dynamicsError  = m_dynamicsErrorSIN(iter); // n+6
 
           if(s.size()!=N_JOINTS)
             s.resize(N_JOINTS);
           if(m_useFeedforward)
           {
             for(unsigned int i=0; i<N_JOINTS; i++)
-              s(i) = tauFB(i) + tauFF(i);
+              s(i) = tauFB(i) + tauFF(i) + dynamicsError(6+i);
           }
           else
           {
             for(unsigned int i=0; i<N_JOINTS; i++)
-              s(i) = tauFB(i);
+              s(i) = tauFB(i) + dynamicsError(6+i);
           }
         }
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
