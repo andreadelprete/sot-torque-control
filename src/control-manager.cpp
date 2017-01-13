@@ -73,6 +73,9 @@ namespace dynamicgraph
         m_jointCtrlModes_current.resize(N_JOINTS);
         m_jointCtrlModes_previous.resize(N_JOINTS);
         m_jointCtrlModesCountDown.resize(N_JOINTS,0);
+        m_signIsPos.resize(N_JOINTS, false);
+        m_changeSignCpt.resize(N_JOINTS, 0);
+        m_winSizeAdapt.resize(N_JOINTS, 0);
 
         Entity::signalRegistration( INPUT_SIGNALS << m_pwmDesSOUT << m_pwmDesSafeSOUT << m_signOfControlFilteredSOUT << m_signOfControlSOUT);
 

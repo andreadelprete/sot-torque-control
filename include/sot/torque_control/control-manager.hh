@@ -136,9 +136,9 @@ namespace dynamicgraph {
         bool    m_maxPwm_violated;  /// true if the max PWM has been violated
         bool    m_is_first_iter;    /// true at the first iteration, false otherwise
 
-        bool         m_signIsPos    [N_JOINTS]={0}; /// Control sign filtered for deadzone compensation
-        unsigned int m_changeSignCpt[N_JOINTS]={0}; /// Cpt to filter the control sign
-        unsigned int m_winSizeAdapt [N_JOINTS]={0}; /// Variable windows filter size used to be more reactibe if last changing sign event is dating a bit (see graph)
+        std::vector<bool>         m_signIsPos;      /// Control sign filtered for deadzone compensation
+        std::vector<unsigned int> m_changeSignCpt;  /// Cpt to filter the control sign
+        std::vector<unsigned int> m_winSizeAdapt;   /// Variable windows filter size used to be more reactibe if last changing sign event is dating a bit (see graph)
         /*
                         _    _   _________________________    _
            input ______| |__| |_|                         |__| |________
