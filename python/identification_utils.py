@@ -67,7 +67,7 @@ def identify_rhy_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 def identify_rhy_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
-  (joint, min_pos, max_pos) = ('rhy', -0.7, 0.45)
+  (joint, min_pos, max_pos) = ('rhy', -0.0, 0.5)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('lhr',0.1,3.0)
@@ -186,7 +186,7 @@ def identify_lhy_static(traj_gen,staticTime=60.0):
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
 def identify_lhy_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
-  (joint, min_pos, max_pos) = ('lhy', +0.7, -0.45)
+  (joint, min_pos, max_pos) = ('lhy', +0.0, -0.5)
   go_to_zero_position(traj_gen,5.0)
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('rhr',-0.1,3.0)
@@ -289,6 +289,26 @@ def identify_lar_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0]):
   time.sleep(5.0 + 0.5)
   traj_gen.moveJoint('lhp',-1.57,5.0)
   traj_gen.moveJoint('lk',1.57,5.0)
+  time.sleep(5.0 + 0.5)
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+
+
+def identify_tp_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0,2.5]):
+  (joint, min_pos, max_pos) = ('tp', 0., 1.)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  
+def identify_ty_dynamic(traj_gen,mode='constAcc',N=3,times=[5.0,4.0,3.0,2.5]):
+  (joint, min_pos, max_pos) = ('ty', -0.7, 0.7)
+  go_to_zero_position(traj_gen,5.0)
+  time.sleep(5.0 + 0.5)
+  traj_gen.moveJoint('lsp',-1.57,5.0)
+  traj_gen.moveJoint('rsp',-1.57,5.0)
   time.sleep(5.0 + 0.5)
   doNCycles(traj_gen,joint,min_pos, max_pos,N,times,mode)
   go_to_zero_position(traj_gen,5.0)
