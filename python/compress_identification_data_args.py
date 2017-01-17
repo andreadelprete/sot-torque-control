@@ -112,12 +112,30 @@ def main():
 
         time = enc[:N,0];
         ctrl = ctrl[:N,1:];
-        ctrl = ctrl[:,JOINT_ID].reshape(N,len(JOINT_ID));
         current = current[:N,1:];
+        ctrl = ctrl[:,JOINT_ID].reshape(N,len(JOINT_ID));
+        embed()
+        #FIX FOR BAD CURRENT ASSIGNMENT
+        
+        print 'JOINT_ID :'
+        print JOINT_ID
+        for i in range(30):
+            print 'amp[{0}]=\t{1}'.format(i,max(current[:,i])-min(current[:,i]))
         if (JOINT_ID == 4): 
             current = current[:,5].reshape(N,1);
         elif (JOINT_ID == 5):
             current = current[:,4].reshape(N,1);
+        elif (JOINT_ID == 11):
+            current = current[:,10].reshape(N,1); #OK
+        elif (JOINT_ID == 10):
+            current = current[:,11].reshape(N,1); #OK        
+            
+        elif (JOINT_ID == 7):
+            current = current[:,7].reshape(N,1); 
+        elif (JOINT_ID == 8):
+            current = current[:,9].reshape(N,1);           
+            
+               
         else:
             current = current[:,JOINT_ID].reshape(N,len(JOINT_ID));
         enc  = enc[:N,7:];

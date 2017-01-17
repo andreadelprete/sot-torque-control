@@ -11,7 +11,6 @@ import plot_utils
 import matplotlib.pyplot as plt
 from motor_model import Motor_model
 
-
 '''
 motor model :
 i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
@@ -120,7 +119,16 @@ SHOW_THRESHOLD_EFFECT = False
 #~ JOINT_NAME = 'rhp'; 
 #~ JOINT_NAME = 'rk'; 
 #~ JOINT_NAME = 'rap'; 
-JOINT_NAME = 'rar'; 
+#~ JOINT_NAME = 'rar'; 
+
+
+JOINT_NAME = 'lhy'; # 6 ok
+#~ JOINT_NAME = 'lhr'; # 7 NOK  
+#~ JOINT_NAME = 'lhp'; # 8 ok
+#~ JOINT_NAME = 'lk';  # 9  ok
+#~ JOINT_NAME = 'lap'; # 10 ok
+#~ JOINT_NAME = 'lar'; # 11 ok
+
 
 
 #~ 
@@ -154,6 +162,36 @@ if(JOINT_NAME == 'rar' ):
     data_folder_static = '../../results/20161114_154945_rar_static/';
     data_folder_vel    = '../../results/20161114_160038_rar_vel/';
     data_folder_acc    = '../../results/20161114_155545_rar_acc/';
+
+
+
+
+
+if(JOINT_NAME == 'lhy' ):
+    data_folder_static = '../../results/20170113_144220_lhy_static/';
+    data_folder_vel    = '../../results//';
+    data_folder_acc    = '../../results/20170113_144710_lhy_const_acc/';
+if(JOINT_NAME == 'lhr' ):
+    data_folder_static = '../../results/20170113_145227_lhr_static/';
+    data_folder_vel    = '../../results/20170113_150215_lhr_const_vel/';
+    data_folder_acc    = '../../results/20170113_145826_lhr_const_acc/';
+if(JOINT_NAME == 'lhp' ):
+    data_folder_static = '../../results/20170113_150628_lhp_static/';
+    data_folder_vel    = '../../results/20170113_151433_lhp_const_vel/';
+    data_folder_acc    = '../../results/20170113_151103_lhp_const_acc/';
+if(JOINT_NAME == 'lk' ):
+    data_folder_static = '../../results/20170113_151748_lk_static/';
+    data_folder_vel    = '../../results/20170113_152924_lk_const_vel/';
+    data_folder_acc    = '../../results/20170113_152606_lk_const_acc/';
+if(JOINT_NAME == 'lap' ):
+    data_folder_static = '../../results/20170113_154007_lap_static/';
+    data_folder_vel    = '../../results/20170113_154834_lap_const_vel/';
+    data_folder_acc    = '../../results/20170113_154303_lap_const_acc/';
+if(JOINT_NAME == 'lar' ):
+    data_folder_static = '../../results/20170113_155150_lar_static/';
+    data_folder_vel    = '../../results/20170113_160057_lar_const_vel/';
+    data_folder_acc    = '../../results/20170113_155706_lar_const_acc/';
+
 
     
     
