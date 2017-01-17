@@ -232,6 +232,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         ros.add('vector', 'estimator_jointsTorquesFromInertiaModel_ros', 'estimator_jointsTorquesFromInertiaModel');
         ros.add('vector', 'estimator_jointsTorquesFromMotorModel_ros',   'estimator_jointsTorquesFromMotorModel');
         ros.add('vector', 'estimator_currentFiltered_ros',               'estimator_currentFiltered');
+        ros.add('vector', 'estimator_dynamicsError_ros',                 'estimator_dynamicsError');
 #        plug(estimator.jointsPositions,         ros.estimator_jointsPositions_ros);
         plug(estimator.jointsVelocities,        ros.estimator_jointsVelocities_ros);
         plug(estimator.jointsAccelerations,     ros.estimator_jointsAccelerations_ros);
@@ -247,6 +248,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.jointsTorquesFromInertiaModel,     ros.estimator_jointsTorquesFromInertiaModel_ros);
         plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
         plug(estimator.currentFiltered,                   ros.estimator_currentFiltered_ros);
+        plug(estimator.dynamcsError,                      ros.estimator_dynamicsError_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
         ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
