@@ -133,7 +133,7 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
     plug(estimator.jointsTorques,            ctrl_manager.tau);
     ctrl_manager.max_tau.value = tuple(tau_max);
-    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.8,);
+    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.5,);
     ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
     plug(ctrl_manager.pwmDesSafe,       device.control);
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
@@ -248,7 +248,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.jointsTorquesFromInertiaModel,     ros.estimator_jointsTorquesFromInertiaModel_ros);
         plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
         plug(estimator.currentFiltered,                   ros.estimator_currentFiltered_ros);
-        plug(estimator.dynamcsError,                      ros.estimator_dynamicsError_ros);
+        plug(estimator.dynamicsError,                      ros.estimator_dynamicsError_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
         ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
