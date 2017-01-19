@@ -22,50 +22,85 @@ Ka_n=zeros(NJ);
 #Kf_p[2]=0.5
 #Kf_n[2]=1.0
 
-Kt_p[0] = 0.055296
-Kt_n[0] = 0.053063
-Kv_p[0] = 0.622347
-Kv_n[0] = 0.631519
-Kf_p[0] = 0.367172
-Kf_n[0] = 0.179646
+Kt_p[0] = 0.055296 #Using ../../results/20161114_135332_rhy_static/
+Kt_n[0] = 0.053063 #Using ../../results/20161114_135332_rhy_static/
+Kv_p[0] = 0.622347 #Using ../../results/20161114_143152_rhy_vel/
+Kv_n[0] = 0.631519 #Using ../../results/20161114_143152_rhy_vel/
+Kf_p[0] = 0.367172 #Using ../../results/20161114_143152_rhy_vel/
+Kf_n[0] = 0.179646 #Using ../../results/20161114_143152_rhy_vel/
 
-Kt_p[1] = 0.061086
-Kt_n[1] = 0.057935
-Kv_p[1] = 0.421158
-Kv_n[1] = 0.969622
-Kf_p[1] = 0.286021
-Kf_n[1] = 0.581164
+Kt_p[1] = 0.061086 #Using ../../results/20161114_144232_rhr_static/
+Kt_n[1] = 0.057935 #Using ../../results/20161114_144232_rhr_static/
+Kv_p[1] = 0.421158 #Using ../../results/20161114_150356_rhr_vel/
+Kv_n[1] = 0.969622 #Using ../../results/20161114_150356_rhr_vel/
+Kf_p[1] = 0.286021 #Using ../../results/20161114_150356_rhr_vel/
+Kf_n[1] = 0.581164 #Using ../../results/20161114_150356_rhr_vel/
 
-Kt_p[2] = 0.094594
-Kt_n[2] = 0.073833
-Kv_p[2] = 0.136035
-Kv_n[2] = 0.838969
-Kf_p[2] = 0.391538
-Kf_n[2] = 1.024559
+Kt_p[2] = 0.094594 #Using ../../results/20161114_150722_rhp_static/
+Kt_n[2] = 0.073833 #Using ../../results/20161114_150722_rhp_static/
+Kv_p[2] = 0.136035 #Using ../../results/20161114_151812_rhp_vel/
+Kv_n[2] = 0.838969 #Using ../../results/20161114_151812_rhp_vel/
+Kf_p[2] = 0.391538 #Using ../../results/20161114_151812_rhp_vel/
+Kf_n[2] = 1.024559 #Using ../../results/20161114_151812_rhp_vel/
 
-Kt_p[3] = 0.074166
-Kt_n[3] = 0.071020
-Kv_p[3] = 0.417404
-Kv_n[3] = 0.410628
-Kf_p[3] = 0.581185
-Kf_n[3] = 0.653799
+Kt_p[3] = 0.074166 #Using ../../results/20161114_152140_rk_static/
+Kt_n[3] = 0.071020 #Using ../../results/20161114_152140_rk_static/
+Kv_p[3] = 0.417404 #Using ../../results/20161114_153220_rk_vel/
+Kv_n[3] = 0.410628 #Using ../../results/20161114_153220_rk_vel/
+Kf_p[3] = 0.581185 #Using ../../results/20161114_153220_rk_vel/
+Kf_n[3] = 0.653799 #Using ../../results/20161114_153220_rk_vel/
 
-Kt_p[4] = 0.082799
-Kt_n[4] = 0.088775
-Kv_p[4] = 0.197908
-Kv_n[4] = 0.235906
-Kf_p[4] = 0.589244
-Kf_n[4] = 0.253694
+Kt_p[4] = 0.082799 #Using ../../results/20161114_153739_rap_static/
+Kt_n[4] = 0.088775 #Using ../../results/20161114_153739_rap_static/
+Kv_p[4] = 0.197908 #Using ../../results/20161114_154559_rap_vel/
+Kv_n[4] = 0.235906 #Using ../../results/20161114_154559_rap_vel/
+Kf_p[4] = 0.589244 #Using ../../results/20161114_154559_rap_vel/
+Kf_n[4] = 0.253694 #Using ../../results/20161114_154559_rap_vel/
 
-Kt_p[5] = 0.155817
-Kt_n[5] = 0.156519
-Kv_p[5] = 0.487505
-Kv_n[5] = 0.450785
-Kf_p[5] = 0.567581
-Kf_n[5] = 0.351654
+Kt_p[5] = 0.155817 #Using ../../results/20161114_154945_rar_static/
+Kt_n[5] = 0.156519 #Using ../../results/20161114_154945_rar_static/
+Kv_p[5] = 0.487505 #Using ../../results/20161114_160038_rar_vel/
+Kv_n[5] = 0.450785 #Using ../../results/20161114_160038_rar_vel/
+Kf_p[5] = 0.567581 #Using ../../results/20161114_160038_rar_vel/
+Kf_n[5] = 0.351654 #Using ../../results/20161114_160038_rar_vel/
+
+Kt_p[7] = 0.060237 #Using ../../results/20170113_145227_lhr_static/ (Current sensor not used)
+Kt_n[7] = 0.056647 #Using ../../results/20170113_145227_lhr_static/ (Current sensor not used)
+Kv_p[7] = 1.966919 #Using ../../results/20170113_150215_lhr_const_vel/ (Current sensor not used)
+Kv_n[7] = 1.718942 #Using ../../results/20170113_150215_lhr_const_vel/ (Current sensor not used)
+Kf_p[7] = 0.504672 #Using ../../results/20170113_150215_lhr_const_vel/ (Current sensor not used)
+Kf_n[7] = 0.135132 #Using ../../results/20170113_150215_lhr_const_vel/ (Current sensor not used)
+
+Kt_p[8] = 0.073687 #Using ../../results/20170113_150628_lhp_static/ (Current sensor not used)
+Kt_n[8] = 0.066766 #Using ../../results/20170113_150628_lhp_static/ (Current sensor not used)
+Kv_p[8] = 0.987868 #Using ../../results/20170113_151433_lhp_const_vel/ (Current sensor not used)
+Kv_n[8] = 1.744052 #Using ../../results/20170113_151433_lhp_const_vel/ (Current sensor not used)
+Kf_p[8] = 0.739085 #Using ../../results/20170113_151433_lhp_const_vel/ (Current sensor not used)
+Kf_n[8] = 0.557939 #Using ../../results/20170113_151433_lhp_const_vel/ (Current sensor not used)
+
+Kt_p[9] = 0.072105 #Using ../../results/20170113_151748_lk_static/
+Kt_n[9] = 0.066092 #Using ../../results/20170113_151748_lk_static/
+Kv_p[9] = 0.431288 #Using ../../results/20170113_152924_lk_const_vel/
+Kv_n[9] = 0.471105 #Using ../../results/20170113_152924_lk_const_vel/
+Kf_p[9] = 0.362164 #Using ../../results/20170113_152924_lk_const_vel/
+Kf_n[9] = 0.768073 #Using ../../results/20170113_152924_lk_const_vel/
+
+Kt_p[10] = 0.092801 #Using ../../results/20170113_154007_lap_static/
+Kt_n[10] = 0.093069 #Using ../../results/20170113_154007_lap_static/
+Kv_p[10] = 0.534809 #Using ../../results/20170113_154834_lap_const_vel/
+Kv_n[10] = 0.494195 #Using ../../results/20170113_154834_lap_const_vel/
+Kf_p[10] = 0.084924 #Using ../../results/20170113_154834_lap_const_vel/
+Kf_n[10] = 0.811460 #Using ../../results/20170113_154834_lap_const_vel/
+
+Kt_p[11] = 0.147950 #Using ../../results/20170113_155150_lar_static/
+Kt_n[11] = 0.150111 #Using ../../results/20170113_155150_lar_static/
+Kv_p[11] = 0.329784 #Using ../../results/20170113_160057_lar_const_vel/
+Kv_n[11] = 0.349884 #Using ../../results/20170113_160057_lar_const_vel/
+Kf_p[11] = 0.272238 #Using ../../results/20170113_160057_lar_const_vel/
+Kf_n[11] = 0.440311 #Using ../../results/20170113_160057_lar_const_vel/
 
 # take averages for p and n
-for i in range(6):
+for i in range(NJ):
     Kt_av = (Kt_n[i] + Kt_p[i])/2
     Kt_n[i]=Kt_av
     Kt_p[i]=Kt_av
