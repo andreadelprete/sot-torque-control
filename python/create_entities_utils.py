@@ -17,6 +17,11 @@ from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
 
+def create_flex_estimator(robot):
+    from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import HRP2ModelBaseFlexEstimatorIMUForce
+    flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot);
+    return flex_est;
+
 def create_position_controller(device, estimator, dt=0.001, traj_gen=None):
     posCtrl = PositionController('pos_ctrl')
     posCtrl.Kp.value = tuple(kp_pos);
