@@ -13,7 +13,6 @@ from dynamic_graph.sot.torque_control.inverse_dynamics_controller import Inverse
 from dynamic_graph.sot.torque_control.admittance_controller import AdmittanceController
 from dynamic_graph.sot.torque_control.position_controller import PositionController
 from dynamic_graph.tracer_real_time import TracerRealTime
-from dynamic_graph.ros import RosImport
 from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
@@ -117,7 +116,8 @@ def create_inverse_dynamics(device, estimator, torque_ctrl, traj_gen, dt=0.001):
     plug(inv_dyn_ctrl.tauFB,            torque_ctrl.tauFB);
     plug(inv_dyn_ctrl.tauDes,           estimator.tauDes);
     plug(estimator.dynamicsError,       inv_dyn_ctrl.dynamicsError);
-    inv_dyn_ctrl.dynamicsError.value = (NJ+6)*(0.0,);       # comment this line to activate compensation of dynamics error
+    
+    inv_dyn_ctrl.dynamicsErrorGain.value = (NJ+6)*(0.0,);
     inv_dyn_ctrl.Kp.value = tuple(k_s); # joint proportional gains
     inv_dyn_ctrl.Kd.value = tuple(k_d); # joint derivative gains
     inv_dyn_ctrl.Kf.value = tuple(k_f); # force proportional gains
@@ -193,6 +193,7 @@ def create_admittance_ctrl(device, estimator, ctrl_manager, traj_gen, dt=0.001):
     return admit_ctrl;
 
 def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=None, ctrl_manager=None, inv_dyn=None, adm_ctrl=None):
+    from dynamic_graph.ros import RosImport
     ros = RosImport('rosImport');
     if(robot!=None):
         ros.add('vector', 'robotState_ros',     'robotState');

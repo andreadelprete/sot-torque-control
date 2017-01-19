@@ -41,7 +41,7 @@ namespace dynamicgraph
                           m_fRightHandRefSIN << m_fLeftHandRefSIN
 #define FORCE_SIGNALS     m_fRightFootSIN << m_fLeftFootSIN << \
                           m_fRightHandSIN << m_fLeftHandSIN
-#define GAIN_SIGNALS      m_KpSIN << m_KdSIN << m_KfSIN << m_KiSIN
+#define GAIN_SIGNALS      m_KpSIN << m_KdSIN << m_KfSIN << m_KiSIN << m_dynamicsErrorGainSIN
 #define REF_JOINT_SIGNALS m_qRefSIN << m_dqRefSIN << m_ddqRefSIN
 #define STATE_SIGNALS     m_base6d_encodersSIN << m_jointsVelocitiesSIN << \
                           m_baseAngularVelocitySIN << m_baseAccelerationSIN
@@ -88,6 +88,7 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(fLeftHand,           ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(controlledJoints,    ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(dynamicsError,       ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(dynamicsErrorGain,   ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(tauDes,             ml::Vector, m_tauFBSOUT<<
                                                                   m_tauFFSOUT)
             ,CONSTRUCT_SIGNAL_OUT(tauFF,            ml::Vector, STATE_SIGNALS<<
@@ -214,18 +215,19 @@ namespace dynamicgraph
           const ml::Vector& tauFB  = m_tauFBSOUT(iter); // n
           const ml::Vector& tauFF  = m_tauFFSOUT(iter); // n
           const ml::Vector& dynamicsError  = m_dynamicsErrorSIN(iter); // n+6
+          const ml::Vector& dynamicsErrorGain  = m_dynamicsErrorGainSIN(iter); // n+6
 
           if(s.size()!=N_JOINTS)
             s.resize(N_JOINTS);
           if(m_useFeedforward)
           {
             for(unsigned int i=0; i<N_JOINTS; i++)
-              s(i) = tauFB(i) + tauFF(i) + dynamicsError(6+i);
+              s(i) = tauFB(i) + tauFF(i) + dynamicsErrorGain(6+i)*dynamicsError(6+i);
           }
           else
           {
             for(unsigned int i=0; i<N_JOINTS; i++)
-              s(i) = tauFB(i) + dynamicsError(6+i);
+              s(i) = tauFB(i) + dynamicsErrorGain(6+i)*dynamicsError(6+i);
           }
         }
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
