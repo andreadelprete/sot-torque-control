@@ -112,6 +112,16 @@ namespace dynamicgraph {
         return ss.str();
       }
 
+      template<typename T>
+      std::string toString(const Eigen::Matrix<T, -1, 1, 0, -1, 1>& v, const std::string separator=", ")
+      {
+        std::stringstream ss;
+        for(int i=0; i<v.size()-1; i++)
+          ss<<v[i]<<separator;
+        ss<<v[v.size()-1];
+        return ss.str();
+      }
+
       enum LoggerVerbosity
       {
         VERBOSITY_ALL,
