@@ -16,7 +16,7 @@ from plot_utils import create_empty_figure
 import plot_utils
 import matplotlib.pyplot as plt
 
-USE_ROBOT_VIEWER = True;
+USE_ROBOT_VIEWER = False;
 
 def randTuple(size):
     v = ();
@@ -304,8 +304,8 @@ def test_force_jacobians(device,estimator,torque_ctrl,traj_gen,ctrl_manager,inv_
     ctrl_manager.setCtrlMode("rar", "torque");
     inv_dyn.Kp.value = NJ*(0.0,);
     inv_dyn.Kd.value = NJ*(0.0,);
-    inv_dyn.Kf.value = NJ*(1.0,);
-    N = 10*1000;
+    inv_dyn.Kf.value = (6*4)*(1.0,);
+    N = 1; #10*1000;
     axis = 2;
     FORCE_MAX = 0.1;
     tauFB1 = np.zeros((N,30));
@@ -346,7 +346,7 @@ def main(task='', dt=0.001, delay=0.01):
     tracer          = create_tracer(device, traj_gen, estimator, inv_dyn, torque_ctrl);
 #    tracer.start();
 
-    torque_ctrl.Kp.value = tuple(k_p);
+    torque_ctrl.KpTorque.value = tuple(k_p);
     torque_ctrl.k_tau.value = tuple(k_tau);
     torque_ctrl.k_v.value   = tuple(k_v);
     inv_dyn.Kp.value = NJ*(1.0,); #10
