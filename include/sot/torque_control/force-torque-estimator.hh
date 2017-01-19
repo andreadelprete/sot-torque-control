@@ -44,6 +44,7 @@
 #include <sot/torque_control/utils/stop-watch.hh>
 #include <sot/torque_control/utils/logger.hh>
 #include <sot/torque_control/hrp2-common.hh>
+#include <boost/circular_buffer.hpp>
 
 /* Polynomial estimators */
 #include <sot/torque_control/utils/lin-estimator.hh>
@@ -332,6 +333,10 @@ namespace dynamicgraph {
         Hrp2_14 m_robot;
         Hrp2_14::confVector m_q, m_dq, m_ddq;
         Hrp2_14::confVector m_torques;
+
+        boost::circular_buffer<ml::Vector> m_tauDesBuffer;
+        boost::circular_buffer<ml::Vector> m_tauBuffer;
+        double m_delayTauDes;
         
       public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
