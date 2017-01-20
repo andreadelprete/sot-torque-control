@@ -273,7 +273,7 @@ namespace dynamicgraph
         m_ftSensRightHandFilter  = new LinEstimator(winSizeFT, 6, m_dt);
         m_currentMeasureFilter   = new LinEstimator(winSizeCur, N_JOINTS, m_dt);
 
-        m_delayTauDes = delayFTsens;
+        m_delayTauDes = 0.0;
         m_tauDesBuffer = boost::circular_buffer<ml::Vector>(winSizeFT/2);
         m_tauBuffer = boost::circular_buffer<ml::Vector>(2);
 

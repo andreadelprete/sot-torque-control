@@ -374,9 +374,9 @@ def main(task='', dt=0.001, delay=0.01):
         
 #    tracer.stop();
 #    tracer.dump();
-    return (device,estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,adm_ctrl,tracer);
+    return (device,estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,pos_ctrl,adm_ctrl,tracer);
     
 if __name__=='__main__':
-    (device,estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,adm_ctrl,tracer) = main('test_force_jacobians',0.001,0.01);
+    (device,estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,pos_ctrl,adm_ctrl,tracer) = main('none',0.001,0.01);
     pass;
     
