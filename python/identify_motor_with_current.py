@@ -10,7 +10,7 @@ from plot_utils import saveCurrentFigure
 import plot_utils
 import matplotlib.pyplot as plt
 from motor_model import Motor_model
-
+from scipy.cluster.vq import kmeans
 '''
 motor model :
 i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
@@ -85,11 +85,12 @@ Kf_n[2] = 0.813251
 Ka_p[2] = 0.0
 Ka_n[2] = 0.0
 
+#~ DZ=70
+DZ=0.0
 motor = Motor_model(Kt_p[2], Kt_n[2], 
                     Kf_p[2], Kf_n[2],
                     Kv_p[2], Kv_n[2],
                     Ka_p[2], Ka_n[2],0.1)
-
 
 ''' Solve the least square problem:
     solve   y=ax+b in L2 norm
@@ -106,43 +107,44 @@ def solve1stOrderLeastSquare(x,y):
 def solveLeastSquare(A, b):
     return np.linalg.pinv(A)*np.matrix(b).T;
 
-
-DATA_FILE_NAME = 'data.npz';
-
-ZERO_VELOCITY_THRESHOLD     = 0.3
-ZERO_ACCELERATION_THRESHOLD = 0.1
+ZERO_VELOCITY_THRESHOLD     = 0.1
+ZERO_ACCELERATION_THRESHOLD = 1.
 ZERO_JERK_THRESHOLD         = 3.0
-SHOW_THRESHOLD_EFFECT = False
+SHOW_THRESHOLD_EFFECT = True
 
-#~ JOINT_NAME = 'rhy'; 
+USING_CONTROL_AS_CURRENT_MEASURE = False
+INVERT_CURRENT = False
+
+#~ JOINT_NAME = 'rhy';  
 #~ JOINT_NAME = 'rhr'; 
 #~ JOINT_NAME = 'rhp'; 
-#~ JOINT_NAME = 'rk'; 
+JOINT_NAME = 'rk'; 
 #~ JOINT_NAME = 'rap'; 
 #~ JOINT_NAME = 'rar'; 
 
-
-JOINT_NAME = 'lhy'; # 6 ok
-#~ JOINT_NAME = 'lhr'; # 7 NOK  
-#~ JOINT_NAME = 'lhp'; # 8 ok
-#~ JOINT_NAME = 'lk';  # 9  ok
+#~ JOINT_NAME = 'lhy';  USING_CONTROL_AS_CURRENT_MEASURE = True  # 6   
+#~ JOINT_NAME = 'lhr';  USING_CONTROL_AS_CURRENT_MEASURE = True  # 7   
+#~ JOINT_NAME = 'lhp';  USING_CONTROL_AS_CURRENT_MEASURE = True  # 8 
+#~ JOINT_NAME = 'lk';  # 9 ok
 #~ JOINT_NAME = 'lap'; # 10 ok
 #~ JOINT_NAME = 'lar'; # 11 ok
 
+#~ USING_CONTROL_AS_CURRENT_MEASURE = True 
 
-
-#~ 
 #~ IDENTIFICATION_MODE='static'
 IDENTIFICATION_MODE='vel'
 #~ IDENTIFICATION_MODE='acc'
 #~ 
-
-
+Nvel = 10
 if(JOINT_NAME == 'rhy' ):
+    INVERT_CURRENT = True
+    Nvel = 9
     data_folder_static = '../../results/20161114_135332_rhy_static/';
     data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
     data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
 if(JOINT_NAME == 'rhr' ):
+    INVERT_CURRENT = True
+    Nvel = 10
     data_folder_static = '../../results/20161114_144232_rhr_static/';
     data_folder_vel    = '../../results/20161114_150356_rhr_vel/';
     data_folder_acc    = '../../results/20161114_145456_rhr_acc/';
@@ -151,10 +153,12 @@ if(JOINT_NAME == 'rhp' ):
     data_folder_vel    = '../../results/20161114_151812_rhp_vel/';
     data_folder_acc    = '../../results/20161114_151259_rhp_acc/';
 if(JOINT_NAME == 'rk' ):
+    INVERT_CURRENT = True
     data_folder_static = '../../results/20161114_152140_rk_static/';
     data_folder_vel    = '../../results/20161114_153220_rk_vel/';
     data_folder_acc    = '../../results/20161114_152706_rk_acc/';
 if(JOINT_NAME == 'rap' ):
+    INVERT_CURRENT = True
     data_folder_static = '../../results/20161114_153739_rap_static/';
     data_folder_vel    = '../../results/20161114_154559_rap_vel/';
     data_folder_acc    = '../../results/20161114_154316_rap_acc/';
@@ -162,10 +166,6 @@ if(JOINT_NAME == 'rar' ):
     data_folder_static = '../../results/20161114_154945_rar_static/';
     data_folder_vel    = '../../results/20161114_160038_rar_vel/';
     data_folder_acc    = '../../results/20161114_155545_rar_acc/';
-
-
-
-
 
 if(JOINT_NAME == 'lhy' ):
     data_folder_static = '../../results/20170113_144220_lhy_static/';
@@ -194,70 +194,12 @@ if(JOINT_NAME == 'lar' ):
 
 
     
-    
-    
 if (IDENTIFICATION_MODE=='static') : data_folder = data_folder_static
 if (IDENTIFICATION_MODE=='vel')    : data_folder = data_folder_vel
 if (IDENTIFICATION_MODE=='acc')    : data_folder = data_folder_acc
 
-
-
-#~ 
-#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_144232_rhr_static/'; IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_145456_rhr_acc/';    IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rhr'; data_folder = '../../results/20161114_150356_rhr_vel/';    IDENTIFICATION_MODE='vel'
-#~ 
-#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_150722_rhp_static/'; IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_151259_rhp_acc/';    IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rhp'; data_folder = '../../results/20161114_151812_rhp_vel/';    IDENTIFICATION_MODE='vel'
-#~ 
-#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_152140_rk_static/';  IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_152706_rk_acc/';     IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rk' ; data_folder = '../../results/20161114_153220_rk_vel/';     IDENTIFICATION_MODE='vel'
-#~ 
-#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_153739_rap_static/'; IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_154316_rap_acc/';    IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rap'; data_folder = '../../results/20161114_154559_rap_vel/';    IDENTIFICATION_MODE='vel'
-#~ 
-#~ 
-#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_154945_rar_static/'; IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_155545_rar_acc/';    IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rar'; data_folder = '../../results/20161114_160038_rar_vel/';    IDENTIFICATION_MODE='vel'
-#~ 
-#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_135332_rhy_static/'; IDENTIFICATION_MODE='static'
-#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_142351_rhy_acc/';    IDENTIFICATION_MODE='acc'    
-#~ JOINT_NAME = 'rhy'; data_folder = '../../results/20161114_143152_rhy_vel/';    IDENTIFICATION_MODE='vel'
-
-
 JOINT_ID = jID[JOINT_NAME]
 
-'''
-20161114_144232_rhr_static           
-20161114_145456_rhr_acc          
-20161114_150356_rhr_vel     
-      
-20161114_150722_rhp_static   
-20161114_151259_rhp_acc
-20161114_151812_rhp_vel     
-     
-20161114_152140_rk_static        
-20161114_152706_rk_acc            
-20161114_153220_rk_vel     
-     
-20161114_153739_rap_static           
-20161114_154316_rap_acc          
-20161114_154559_rap_vel    
-  
-20161114_154945_rar_static         
-20161114_155545_rar_acc           
-20161114_160038_rar_vel
-
-20161114_135332_rhy_static 
-20161114_142351_rhy_acc
-20161114_143152_rhy_vel                
-'''
-
-   
 DATA_FILE_NAME = 'data_j'+str(JOINT_ID)+'.npz';
 
 #~ 
@@ -324,11 +266,16 @@ else:
     tau = np.squeeze(data['tau'][:,JOINT_ID]);
     ctrl = np.squeeze(data['ctrl'][:,JOINT_ID]);
     
-maskSaturation=np.logical_and( (current>-9.5) , (current<9.5) )
+maskSaturation=np.logical_and( (current>-9.5) , (current<9.5))
+if USING_CONTROL_AS_CURRENT_MEASURE:
+    maskCtrlNotInDZ = np.logical_and( ctrl >= (DZ *0.8) ,ctrl <= -(DZ*0.8)  )
+    maskSaturation=np.logical_or(maskSaturation, maskCtrlNotInDZ)
 maskPosVel=(dq> 0.001)
 maskNegVel=(dq<-0.001)
 
-#~ embed()
+
+if INVERT_CURRENT:
+    current = - current
 
 enc     = enc    [maskSaturation];
 dq      = dq     [maskSaturation];
@@ -340,6 +287,37 @@ current = current[maskSaturation];
 maskPosVel = maskPosVel[maskSaturation]
 maskNegVel = maskNegVel[maskSaturation]
 
+
+
+    #~ plt.ylabel('control')
+    #~ plt.xlabel('current')
+    #~ plt.plot(ctrl /102.4,current,'x')
+    #~ 
+    #~ (v1min,v1max) = ( 0.7 , 0.9)
+    #~ (v2min,v2max) = (0.25 , 0.3)
+    #~ (v3min,v3max) = (0.18 , 0.21)
+    #~ 
+    #~ maskv1= np.logical_and( dq > v1min , dq <v1max  )
+    #~ maskv2= np.logical_and( dq > v2min , dq <v2max  )
+    #~ maskv3= np.logical_and( dq > v3min , dq <v3max  )
+    #~ 
+    #~ plt.plot(ctrl[maskv1] /102.4,current[maskv1],'xr')
+    #~ plt.plot(ctrl[maskv2] /102.4,current[maskv2],'xg')
+    #~ plt.plot(ctrl[maskv3] /102.4,current[maskv3],'xy')
+    #~ plt.show()   
+
+   
+if USING_CONTROL_AS_CURRENT_MEASURE:
+    current_est = current.copy()
+    #~ maskUpDZ = ctrl > DZ
+    #~ maskDnDZ = ctrl < DZ
+    #~ maskInDZ = np.logical_and( ctrl <= DZ ,ctrl >= -DZ )
+    current = ctrl /102.4
+    #~ current[maskUpDZ] =  (ctrl[maskUpDZ]-DZ) /102.4 
+    #~ current[maskDnDZ] =  (ctrl[maskDnDZ]+DZ) /102.4 
+    #~ current[maskInDZ] =  0.0
+
+    
 #Ktau,Tau0 Identification
 if(IDENTIFICATION_MODE=='static'):
     #Filter current*****************************************************
@@ -396,6 +374,9 @@ if(IDENTIFICATION_MODE=='static'):
     print 'Kt_n[%d] = %f' % (JOINT_ID,Ktn);
     print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    
+    print 'Kt_m[%d] = %f' % (JOINT_ID,(Ktp+Ktn)/2.0);
+    print 'Kf_m[%d] = %f' % (JOINT_ID,(Kfp+Kfn)/2.0);
     #save parameters for next identification level**********************
     np.savez(data_folder+'motor_param_'+JOINT_NAME+'.npz',Ktp=Ktp,Ktn=Ktn)
     plt.savefig(data_folder+"static_"+JOINT_NAME+".jpg")
@@ -429,7 +410,7 @@ if(IDENTIFICATION_MODE=='vel'):
     #~ plt.plot(ddq);
     maskConstPosVel=np.logical_and( maskConstVel ,maskPosVel )
     maskConstNegVel=np.logical_and( maskConstVel ,maskNegVel ) 
-    
+
     if SHOW_THRESHOLD_EFFECT :
         plt.figure()
         plt.plot(dq); plt.ylabel('dq')
@@ -437,6 +418,56 @@ if(IDENTIFICATION_MODE=='vel'):
         dq_const[np.logical_not(maskConstVel)]=np.nan
         plt.plot(dq_const); plt.ylabel('dq_const')
 
+    # Identification od BEMF effect ************************************
+    times = np.arange(len(enc))*0.001
+    plt.subplot(221)
+    plt.plot(times,dq,lw=1)
+    vels = kmeans(dq[maskConstVel],Nvel)
+    #~ print 'Velocity founds are:'
+    #~ print (vels)
+    couleurs = [ 'g', 'r', 'c', 'm', 'y', 'k'] * 10 #why not?
+    masksVels = []
+    av_dq = [] #List of point keept for identification of BEMF effect
+    av_delta_i = []
+    it=0;
+    for vel in vels[0]:
+        it+=1
+        currentMask = np.logical_and( dq > vel-0.1 , dq < vel+0.1  )
+        currentMask = np.logical_and( currentMask,maskConstVel  )
+        masksVels.append(currentMask)
+        plt.subplot(221)
+        plt.plot(times[currentMask],dq[currentMask],'o'+couleurs[it])
+        plt.subplot(222)
+        plt.xlabel('control')
+        plt.ylabel('current')
+        plt.plot(ctrl[currentMask] /102.4,current[currentMask],'x'+couleurs[it])
+        plt.subplot(223)
+        plt.xlabel('control - current')
+        plt.ylabel('velocity')
+        plt.plot(ctrl[currentMask] /102.4-current[currentMask],dq[currentMask],'x'+couleurs[it])
+        av_dq.append(      np.mean(dq[currentMask]                               ))
+        av_delta_i.append( np.mean(ctrl[currentMask] /102.4-current[currentMask] ))
+    plt.plot(av_delta_i,av_dq,'o')
+    
+    av_dq      = np.array(av_dq)
+    av_delta_i = np.array(av_delta_i)
+    av_dq_pos = av_dq[av_dq>0]
+    av_dq_neg = av_dq[av_dq<0]
+    av_delta_i_pos = av_delta_i[av_dq>0]
+    av_delta_i_neg = av_delta_i[av_dq<0]
+    (ap,bp)=solve1stOrderLeastSquare(av_delta_i_pos,av_dq_pos)
+    (an,bn)=solve1stOrderLeastSquare(av_delta_i_neg,av_dq_neg)
+    a=(an+ap)/2
+    b=(-bp+bn)/2
+    DeadZone = b/a ; #the half of the total dead zone
+    print "deadzone[%d] = %f;"% (JOINT_ID, DeadZone);
+    print "Kpwm[%d] = %f; # in Amp / Rad.s-1"% (JOINT_ID, 1.0/a);
+    
+    x=np.array(av_delta_i)
+    plt.plot([-b/a,b/a],[0. ,0.          ],'g:',lw=3)    
+    plt.plot([min(x),-b/a],[a*min(x)+b ,0.          ],'g:',lw=3)    
+    plt.plot([b/a,max(x)],[0.,a*max(x)-b],'g:',lw=3)
+    plt.show()
     #~ y        = a. x +  b
     #~ i-Kt.tau = Kv.dq + Kf
     #~ 
@@ -467,10 +498,21 @@ if(IDENTIFICATION_MODE=='vel'):
     plt.ylabel(y_label)
     plt.xlabel(x_label)
 
-    print 'Kv_p[%d] = %f' % (JOINT_ID,Kvp);
-    print 'Kv_n[%d] = %f' % (JOINT_ID,Kvn);
-    print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
-    print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    Ktp = Kt_p[JOINT_ID]
+    Ktn = Kt_n[JOINT_ID]
+    warning = ""
+    if USING_CONTROL_AS_CURRENT_MEASURE :
+        warning = " (Current sensor not used)"
+    print 'Kt_p[%d] = %f #Using %s' % (JOINT_ID, Ktp, data_folder_static + warning);
+    print 'Kt_n[%d] = %f #Using %s' % (JOINT_ID, Ktn, data_folder_static + warning);
+    print 'Kv_p[%d] = %f #Using %s' % (JOINT_ID, Kvp, data_folder_vel + warning);
+    print 'Kv_n[%d] = %f #Using %s' % (JOINT_ID, Kvn, data_folder_vel + warning);
+    print 'Kf_p[%d] = %f #Using %s' % (JOINT_ID, Kfp, data_folder_vel + warning);
+    print 'Kf_n[%d] = %f #Using %s' % (JOINT_ID, Kfn, data_folder_vel + warning);
+    
+    #~ print 'Kv_m[%d] = %f' % (JOINT_ID,(Kvp+Kvn)/2.0);
+    #~ print 'Kf_m[%d] = %f' % (JOINT_ID,(Kfp+Kfn)/2.0);
+
     plt.savefig(data_folder+"vel_"+JOINT_NAME+".jpg")
     plt.show()
 
@@ -536,6 +578,8 @@ if(IDENTIFICATION_MODE=='acc'):
     print 'Ka_n[%d] = %f' % (JOINT_ID,Kan);
     print 'Kf_p[%d] = %f' % (JOINT_ID,Kfp);
     print 'Kf_n[%d] = %f' % (JOINT_ID,Kfn);
+    
+    
     plt.show()
 
 #model vs measurement
