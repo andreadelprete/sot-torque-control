@@ -9,9 +9,12 @@ from IPython import embed
 import numpy as np
 import matplotlib.pyplot as plt
 from plot_utils import *
-from compute_estimates_from_sensors import compute_estimates_from_sensors
+try:
+    from compute_estimates_from_sensors import compute_estimates_from_sensors
+except ImportError:
+    print 'Could not import "compute_estimates_from_sensors": '
+    
 import sys
-
 
 
 def main():
@@ -113,8 +116,8 @@ def main():
         time = enc[:N,0];
         ctrl = ctrl[:N,1:];
         current = current[:N,1:];
-        ctrl = ctrl[:,JOINT_ID].reshape(N,len(JOINT_ID));
         embed()
+        ctrl = ctrl[:,JOINT_ID].reshape(N,len(JOINT_ID));
         #FIX FOR BAD CURRENT ASSIGNMENT
         
         print 'JOINT_ID :'
@@ -129,13 +132,10 @@ def main():
             current = current[:,10].reshape(N,1); #OK
         elif (JOINT_ID == 10):
             current = current[:,11].reshape(N,1); #OK        
-            
         elif (JOINT_ID == 7):
             current = current[:,7].reshape(N,1); 
         elif (JOINT_ID == 8):
-            current = current[:,9].reshape(N,1);           
-            
-               
+            current = current[:,8].reshape(N,1);           
         else:
             current = current[:,JOINT_ID].reshape(N,len(JOINT_ID));
         enc  = enc[:N,7:];
