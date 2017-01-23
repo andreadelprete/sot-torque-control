@@ -29,6 +29,7 @@ Kv_n[0] = 0.631519 #Using ../../results/20161114_143152_rhy_vel/
 Kf_p[0] = 0.367172 #Using ../../results/20161114_143152_rhy_vel/
 Kf_n[0] = 0.179646 #Using ../../results/20161114_143152_rhy_vel/
 
+
 Kt_p[1] = 0.061086 #Using ../../results/20161114_144232_rhr_static/
 Kt_n[1] = 0.057935 #Using ../../results/20161114_144232_rhr_static/
 Kv_p[1] = 0.421158 #Using ../../results/20161114_150356_rhr_vel/
