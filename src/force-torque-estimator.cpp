@@ -122,7 +122,9 @@ namespace dynamicgraph
         ,CONSTRUCT_SIGNAL_OUT(jointsTorques,           ml::Vector, m_torques_wrenchesSINNER << m_torquesFromMotorModelSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromMotorModel,   ml::Vector, m_torquesFromMotorModelSINNER)
         ,CONSTRUCT_SIGNAL_OUT(jointsTorquesFromInertiaModel, ml::Vector, m_torques_wrenchesSINNER)
-        ,CONSTRUCT_SIGNAL_OUT(dynamicsError, ml::Vector, m_contactWrenchBodySOUT << m_jointsTorquesSOUT << m_tauDesSIN)
+        ,CONSTRUCT_SIGNAL_OUT(dynamicsError, ml::Vector, m_contactWrenchBodySOUT <<
+                                                         m_jointsTorquesSOUT <<
+                                                         m_tauDesSIN)
 
         ,CONSTRUCT_SIGNAL_INNER(torques_wrenches,      ml::Vector, FORCE_TORQUE_SENSORS_SIGNALS
                                                                 <<KINEMATIC_OUTPUT_SIGNALS
@@ -211,6 +213,14 @@ namespace dynamicgraph
                                                          "24-d vector [s].")));
         addCommand("recomputeFTsensorOffsets", makeCommandVoid0(*this, &ForceTorqueEstimator::recomputeFTsensorOffsets,
                                          docCommandVoid0("Recompute the 4 F/T sensor offsets.")));
+        addCommand("getTauDesDelay",
+                   makeDirectGetter(*this,&m_delayTauDes,
+                                    docDirectGetter("delay (in s) to introduce in tauDes for computing dynamicsError",
+                                                    "vector")));
+        addCommand("setTauDesDelay",
+                   makeDirectSetter(*this, &m_delayTauDes,
+                                    docDirectSetter("delay (in s) to introduce in tauDes for computing dynamicsError",
+                                                    "float")));
 
         addCommand("init", makeCommandVoid7(*this, &ForceTorqueEstimator::init,
                               docCommandVoid7("Initialize the estimator.",
@@ -262,7 +272,10 @@ namespace dynamicgraph
         m_ftSensLeftHandFilter   = new LinEstimator(winSizeFT, 6, m_dt);
         m_ftSensRightHandFilter  = new LinEstimator(winSizeFT, 6, m_dt);
         m_currentMeasureFilter   = new LinEstimator(winSizeCur, N_JOINTS, m_dt);
-        
+
+        m_delayTauDes = 0.0;
+        m_tauDesBuffer = boost::circular_buffer<ml::Vector>(winSizeFT/2);
+        m_tauBuffer = boost::circular_buffer<ml::Vector>(2);
 
         m_ddq_filter_std.resize(N_JOINTS);
         m_dq_filter_std.resize(N_JOINTS);
@@ -959,6 +972,7 @@ namespace dynamicgraph
             else
                 s(i) =  torques_fromInertia(i);
           }
+          m_tauBuffer.push_back(s);
         }
         getProfiler().stop(PROFILE_JOINTS_TORQUES_COMPUTATION);
         return s;
@@ -970,12 +984,26 @@ namespace dynamicgraph
         if(s.size()!=N_JOINTS+6)
           s.resize(N_JOINTS+6);
 
-        if(!m_tauDesSIN.isPlugged())
+        if(!m_tauDesSIN.isPlugged() || m_tauDesSIN.getTime()<=1)
           return s;
 
         const ml::Vector &contactWrenchBody = m_contactWrenchBodySOUT(iter);
-        const ml::Vector &tau    = m_jointsTorquesSOUT(iter);
-        const ml::Vector &tauDes = m_tauDesSIN(iter);
+        const ml::Vector &tauDesLast = m_tauDesSIN(iter-1);
+        m_jointsTorquesSOUT(iter);
+
+        // take the value in the buffer corresponding to the desired delay
+        m_tauDesBuffer.push_back(tauDesLast);
+        int index = m_tauDesBuffer.size() - 1 - (int)(m_delayTauDes/m_dt);
+        if(index<0)
+          index = 0;
+        ml::Vector tauDes = m_tauDesBuffer[index];
+
+        // take the second most recent value (i.e. the one computed at the last cycle)
+        ml::Vector tau;
+        if(m_tauBuffer.size()==1)
+          tau = m_tauBuffer[0];
+        else
+          tau = m_tauBuffer[m_tauBuffer.size()-2];
 
         for(int i=0; i<6; i++)
           s(i) = -1.0*contactWrenchBody(i);

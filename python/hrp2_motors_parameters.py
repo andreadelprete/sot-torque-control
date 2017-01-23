@@ -130,7 +130,7 @@ k_i  = zeros(6*4);  # force integral gains
 tau_max = zeros(NJ);
 
 k_f[:] = 0.5;
-k_i[:] = 0.00032;   # max value 0.015
+k_i[:] = 0.0;   # max value 0.015
 tau_max[:] = 1000.0;
 
 # PARAMETERS OF R_hip_y JOINT 0

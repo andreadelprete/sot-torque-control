@@ -13,10 +13,14 @@ from dynamic_graph.sot.torque_control.inverse_dynamics_controller import Inverse
 from dynamic_graph.sot.torque_control.admittance_controller import AdmittanceController
 from dynamic_graph.sot.torque_control.position_controller import PositionController
 from dynamic_graph.tracer_real_time import TracerRealTime
-from dynamic_graph.ros import RosImport
 from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
+
+def create_flex_estimator(robot):
+    from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import HRP2ModelBaseFlexEstimatorIMUForce
+    flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot);
+    return flex_est;
 
 def create_position_controller(device, estimator, dt=0.001, traj_gen=None):
     posCtrl = PositionController('pos_ctrl')
@@ -117,7 +121,8 @@ def create_inverse_dynamics(device, estimator, torque_ctrl, traj_gen, dt=0.001):
     plug(inv_dyn_ctrl.tauFB,            torque_ctrl.tauFB);
     plug(inv_dyn_ctrl.tauDes,           estimator.tauDes);
     plug(estimator.dynamicsError,       inv_dyn_ctrl.dynamicsError);
-    inv_dyn_ctrl.dynamicsError.value = (NJ+6)*(0.0,);       # comment this line to activate compensation of dynamics error
+    
+    inv_dyn_ctrl.dynamicsErrorGain.value = (NJ+6)*(0.0,);
     inv_dyn_ctrl.Kp.value = tuple(k_s); # joint proportional gains
     inv_dyn_ctrl.Kd.value = tuple(k_d); # joint derivative gains
     inv_dyn_ctrl.Kf.value = tuple(k_f); # force proportional gains
@@ -133,7 +138,7 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
     plug(estimator.jointsTorques,            ctrl_manager.tau);
     ctrl_manager.max_tau.value = tuple(tau_max);
-    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.8,);
+    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.5,);
     ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
     plug(ctrl_manager.pwmDesSafe,       device.control);
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
@@ -193,6 +198,7 @@ def create_admittance_ctrl(device, estimator, ctrl_manager, traj_gen, dt=0.001):
     return admit_ctrl;
 
 def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=None, ctrl_manager=None, inv_dyn=None, adm_ctrl=None):
+    from dynamic_graph.ros import RosImport
     ros = RosImport('rosImport');
     if(robot!=None):
         ros.add('vector', 'robotState_ros',     'robotState');
@@ -232,6 +238,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         ros.add('vector', 'estimator_jointsTorquesFromInertiaModel_ros', 'estimator_jointsTorquesFromInertiaModel');
         ros.add('vector', 'estimator_jointsTorquesFromMotorModel_ros',   'estimator_jointsTorquesFromMotorModel');
         ros.add('vector', 'estimator_currentFiltered_ros',               'estimator_currentFiltered');
+        ros.add('vector', 'estimator_dynamicsError_ros',                 'estimator_dynamicsError');
 #        plug(estimator.jointsPositions,         ros.estimator_jointsPositions_ros);
         plug(estimator.jointsVelocities,        ros.estimator_jointsVelocities_ros);
         plug(estimator.jointsAccelerations,     ros.estimator_jointsAccelerations_ros);
@@ -247,6 +254,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.jointsTorquesFromInertiaModel,     ros.estimator_jointsTorquesFromInertiaModel_ros);
         plug(estimator.jointsTorquesFromMotorModel,       ros.estimator_jointsTorquesFromMotorModel_ros);
         plug(estimator.currentFiltered,                   ros.estimator_currentFiltered_ros);
+        plug(estimator.dynamicsError,                      ros.estimator_dynamicsError_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
         ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
