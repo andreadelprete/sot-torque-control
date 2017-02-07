@@ -140,33 +140,16 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     ctrl_manager.max_tau.value = tuple(tau_max);
     ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.5,);
     ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
+    ctrl_manager.bemfFactor.value = NJ*(0.0,);
+    #ctrl_manager.bemfFactor.value = tuple(Kpwm*0.1);
     plug(ctrl_manager.pwmDesSafe,       device.control);
     plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
     ctrl_manager.addCtrlMode("pos");
     ctrl_manager.addCtrlMode("torque");    
+    plug(estimator.jointsVelocities,    ctrl_manager.dq);
     plug(torque_ctrl.controlCurrent,    ctrl_manager.ctrl_torque);
     plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
     plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
-    ctrl_manager.setCtrlMode("all", "pos");
-    ctrl_manager.init(dt);
-    return ctrl_manager;
-    
-def create_ctrl_manager_noTorqueControl(device, torque_ctrl, pos_ctrl, estimator, dt=0.001):
-    ctrl_manager = ControlManager("ctrl_man");
-    plug(device.robotState,                  ctrl_manager.base6d_encoders);
-
-    plug(torque_ctrl.predictedJointsTorques, ctrl_manager.tau_predicted);
-    plug(estimator.jointsTorques,            ctrl_manager.tau);
-    ctrl_manager.max_tau.value = tuple(tau_max);
-    ctrl_manager.percentageDriverDeadZoneCompensation.value = NJ*(0.8,);
-    ctrl_manager.signWindowsFilterSize.value = NJ*(2,);
-    plug(ctrl_manager.pwmDesSafe,       device.control);
-    plug(ctrl_manager.pwmDes,           torque_ctrl.pwm);
-    ctrl_manager.addCtrlMode("pos");
-    #ctrl_manager.addCtrlMode("torque");    
-    #plug(torque_ctrl.desiredCurrent,        ctrl_manager.ctrl_torque);
-    plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
-    #plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
     ctrl_manager.setCtrlMode("all", "pos");
     ctrl_manager.init(dt);
     return ctrl_manager;
