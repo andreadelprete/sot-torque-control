@@ -11,6 +11,9 @@ import plot_utils
 import matplotlib.pyplot as plt
 from motor_model import Motor_model
 from scipy.cluster.vq import kmeans
+import hrp2_motors_parameters
+
+
 '''
 motor model :
 i(t) = Kt*tau(t) + Kv*dq(t) + Ka*ddq(t) + Kf*Sign(dq)
@@ -68,29 +71,10 @@ Kv_n=np.array(30*(0.0,))
 Ka_p=np.array(30*(0.0,))
 Ka_n=np.array(30*(0.0,))
 
-# const pos
-Kt_p[2] = 0.083160
-Kt_n[2] = 0.078039
-Kf_p[2] = 0.018288 #OSEF
-Kf_n[2] = 1.018066 #OSEF
-
-# const vel
-Kv_p[2] = 0.327085
-Kv_n[2] = 0.396856
-
-Kf_p[2] = 0.132690
-Kf_n[2] = 0.813251
-
-# const acc
-Ka_p[2] = 0.0
-Ka_n[2] = 0.0
 
 #~ DZ=70
 DZ=0.0
-motor = Motor_model(Kt_p[2], Kt_n[2], 
-                    Kf_p[2], Kf_n[2],
-                    Kv_p[2], Kv_n[2],
-                    Ka_p[2], Ka_n[2],0.1)
+
 
 ''' Solve the least square problem:
     solve   y=ax+b in L2 norm
@@ -118,7 +102,7 @@ INVERT_CURRENT = False
 #~ JOINT_NAME = 'rhy';  
 #~ JOINT_NAME = 'rhr'; 
 #~ JOINT_NAME = 'rhp'; 
-JOINT_NAME = 'rk'; 
+#~ JOINT_NAME = 'rk'; 
 #~ JOINT_NAME = 'rap'; 
 #~ JOINT_NAME = 'rar'; 
 
@@ -129,12 +113,17 @@ JOINT_NAME = 'rk';
 #~ JOINT_NAME = 'lap'; # 10 ok
 #~ JOINT_NAME = 'lar'; # 11 ok
 
-#~ USING_CONTROL_AS_CURRENT_MEASURE = True 
-
 #~ IDENTIFICATION_MODE='static'
-IDENTIFICATION_MODE='vel'
+#~ IDENTIFICATION_MODE='vel'
 #~ IDENTIFICATION_MODE='acc'
-#~ 
+
+#Compare Model Vs Measurment
+IDENTIFICATION_MODE='test_model'
+JOINT_NAME = 'rhp'
+data_folder='../../results/20170203_164133_com_sin_z_001/'
+#~ data_folder= '../../results/20161114_153220_rk_vel/'
+
+
 Nvel = 10
 if(JOINT_NAME == 'rhy' ):
     INVERT_CURRENT = True
@@ -192,11 +181,11 @@ if(JOINT_NAME == 'lar' ):
     data_folder_vel    = '../../results/20170113_160057_lar_const_vel/';
     data_folder_acc    = '../../results/20170113_155706_lar_const_acc/';
 
-
-    
 if (IDENTIFICATION_MODE=='static') : data_folder = data_folder_static
 if (IDENTIFICATION_MODE=='vel')    : data_folder = data_folder_vel
 if (IDENTIFICATION_MODE=='acc')    : data_folder = data_folder_acc
+
+if (IDENTIFICATION_MODE=='test_model') : INVERT_CURRENT = False
 
 JOINT_ID = jID[JOINT_NAME]
 
@@ -287,7 +276,18 @@ current = current[maskSaturation];
 maskPosVel = maskPosVel[maskSaturation]
 maskNegVel = maskNegVel[maskSaturation]
 
+#~ maskInDZ=abs(ctrl/102.4) < 0.5
+#~ tt=np.arange(maskInDZ.size)
+#~ plt.plot(tt,ctrl/102.4,'.')
+#~ plt.plot(tt,current,'.')
+#~ plt.plot(tt[maskInDZ],ctrl[maskInDZ]/102.4,'.')
 
+
+#~ plt.figure()
+#~ plt.plot(current,ctrl/102.4-current)
+#~ plt.plot(ctrl,ctrl/102.4-current)
+#~ plt.show()
+#~ embed()
 
     #~ plt.ylabel('control')
     #~ plt.xlabel('current')
@@ -410,7 +410,7 @@ if(IDENTIFICATION_MODE=='vel'):
     #~ plt.plot(ddq);
     maskConstPosVel=np.logical_and( maskConstVel ,maskPosVel )
     maskConstNegVel=np.logical_and( maskConstVel ,maskNegVel ) 
-
+    
     if SHOW_THRESHOLD_EFFECT :
         plt.figure()
         plt.plot(dq); plt.ylabel('dq')
@@ -583,7 +583,24 @@ if(IDENTIFICATION_MODE=='acc'):
     plt.show()
 
 #model vs measurement
-if(False):
+if (IDENTIFICATION_MODE=='test_model'):
+    #load motor parameters
+    Kt_p = hrp2_motors_parameters.Kt_p
+    Kt_n = hrp2_motors_parameters.Kt_n
+    
+    Kf_p = hrp2_motors_parameters.Kf_p
+    Kf_n = hrp2_motors_parameters.Kf_n
+    
+    Kv_p = hrp2_motors_parameters.Kv_p
+    Kv_n = hrp2_motors_parameters.Kv_n
+    
+    Ka_p = hrp2_motors_parameters.Ka_p
+    Ka_n = hrp2_motors_parameters.Ka_n
+    
+    motor = Motor_model(Kt_p[JOINT_ID], Kt_n[JOINT_ID], 
+                        Kf_p[JOINT_ID], Kf_n[JOINT_ID],
+                        Kv_p[JOINT_ID], Kv_n[JOINT_ID],
+                        Ka_p[JOINT_ID], Ka_n[JOINT_ID],0.01)
     tau_motor=np.zeros(len(tau))
     i_motor=np.zeros(len(current))
     
@@ -601,5 +618,7 @@ if(False):
     plt.plot(i_motor)
     plt.legend(['measured current','Estimated current with model'])
     
-    
+    #~ plt.figure()
+    #~ plt.plot(current)
+    #~ plt.plot(ctrl/102.4)
     plt.show()
