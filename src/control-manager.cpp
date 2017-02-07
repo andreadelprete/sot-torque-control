@@ -36,8 +36,8 @@ namespace dynamicgraph
 #define PROFILE_PWM_DESIRED_COMPUTATION       "Control manager                                        "
 #define PROFILE_DYNAMIC_GRAPH_PERIOD          "Control period                                         "
 
-#define SAFETY_SIGNALS m_max_pwmSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN
-#define INPUT_SIGNALS  m_base6d_encodersSIN << m_percentageDriverDeadZoneCompensationSIN << SAFETY_SIGNALS << m_signWindowsFilterSizeSIN
+#define SAFETY_SIGNALS m_max_currentSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN
+#define INPUT_SIGNALS  m_base6d_encodersSIN << m_percentageDriverDeadZoneCompensationSIN << SAFETY_SIGNALS << m_signWindowsFilterSizeSIN << m_dqSIN << m_bemfFactorSIN
 
       /// Define EntityClassName here rather than in the header file
       /// so that it can be used by the macros DEFINE_SIGNAL_**_FUNCTION.
@@ -55,9 +55,11 @@ namespace dynamicgraph
           ControlManager(const std::string& name)
             : Entity(name)
             ,CONSTRUCT_SIGNAL_IN(base6d_encoders,ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(dq,ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(bemfFactor,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(tau,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(tau_predicted,ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(max_pwm,ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(max_current,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(max_tau,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(percentageDriverDeadZoneCompensation,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(signWindowsFilterSize, ml::Vector)
@@ -67,7 +69,7 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_OUT(pwmDesSafe,ml::Vector, INPUT_SIGNALS << m_pwmDesSOUT)
             ,m_initSucceeded(false)
             ,m_maxPwm_violated(false)
-            ,m_maxPwm(DEFAULT_MAX_PWM)
+            ,m_maxPwm(DEFAULT_MAX_CURRENT)
             ,m_is_first_iter(true)
       {
         m_jointCtrlModes_current.resize(N_JOINTS);
@@ -193,8 +195,11 @@ namespace dynamicgraph
         const ml::Vector& tau_max         = m_max_tauSIN(iter);
         const ml::Vector& tau             = m_tauSIN(iter);
         const ml::Vector& tau_predicted   = m_tau_predictedSIN(iter);
+        const ml::Vector& dq              = m_dqSIN(iter);
+        const ml::Vector& bemfFactor      = m_bemfFactorSIN(iter);        
         const ml::Vector& percentageDriverDeadZoneCompensation = m_percentageDriverDeadZoneCompensationSIN(iter);
         const ml::Vector& signWindowsFilterSize                = m_signWindowsFilterSizeSIN(iter);
+
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
 
@@ -235,9 +240,9 @@ namespace dynamicgraph
             if (pwmDes(i) == 0)
               s(i) = 0;
             else if (m_signIsPos[i])
-              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL + percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
+              s(i) = (pwmDes(i) + bemfFactor(i)*dq(i) ) * FROM_CURRENT_TO_12_BIT_CTRL + percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
             else
-              s(i) = pwmDes(i) * FROM_CURRENT_TO_12_BIT_CTRL - percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
+              s(i) = (pwmDes(i) + bemfFactor(i)*dq(i) ) * FROM_CURRENT_TO_12_BIT_CTRL - percentageDriverDeadZoneCompensation(i) * DEAD_ZONE_OFFSET;
 
 
             if(fabs(tau(i)) > tau_max(i))
@@ -262,12 +267,13 @@ namespace dynamicgraph
 
             /// if the signal is plugged, read maxPwm from the associated signal
             /// if not use the default value
-            if(m_max_pwmSIN.isPlugged())
-              m_maxPwm = m_max_pwmSIN(iter)(i);
+            if(m_max_currentSIN.isPlugged())
+              m_maxPwm = m_max_currentSIN(iter)(i);
             else
-              m_maxPwm = DEFAULT_MAX_PWM;
+              m_maxPwm = DEFAULT_MAX_CURRENT;
 
-            if(fabs(pwmDes(i)) > m_maxPwm)
+            if( (fabs(pwmDes(i)) > m_maxPwm) || 
+                (fabs(s(i))      > m_maxPwm * FROM_CURRENT_TO_12_BIT_CTRL) )
             {
               m_maxPwm_violated = true;
               SEND_MSG("Joint "+JointUtil::get_name_from_id(i)+" desired current is too large: "+

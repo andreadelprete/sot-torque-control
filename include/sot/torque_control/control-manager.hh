@@ -97,9 +97,11 @@ namespace dynamicgraph {
         std::vector<dynamicgraph::Signal<ml::Vector,int>*> m_jointsCtrlModesSOUT;
 
         DECLARE_SIGNAL_IN(base6d_encoders,                       ml::Vector);
+        DECLARE_SIGNAL_IN(dq,                                    ml::Vector);  /// Joint velocities; used to compensate for BEMF effect on low level current loop
+        DECLARE_SIGNAL_IN(bemfFactor,                            ml::Vector);  /// Link betwin velocity and current; to compensate for BEMF effect on low level current loop (in A/rad.s-1)
         DECLARE_SIGNAL_IN(tau,                                   ml::Vector);  /// estimated joint torques (using dynamic robot model + F/T sensors)
         DECLARE_SIGNAL_IN(tau_predicted,                         ml::Vector);  /// predicted joint torques (using motor model)
-        DECLARE_SIGNAL_IN(max_pwm,                               ml::Vector);  /// max PWM allows before stopping the controller
+        DECLARE_SIGNAL_IN(max_current,                           ml::Vector);  /// max current allowed before stopping the controller (in Ampers)
         DECLARE_SIGNAL_IN(max_tau,                               ml::Vector);  /// max torque allowed before stopping the controller
         DECLARE_SIGNAL_IN(percentageDriverDeadZoneCompensation,  ml::Vector);  /// percentatge in [0;1] of the motor driver dead zone that we should compensate 0 is none, 1 is all of it
         DECLARE_SIGNAL_IN(signWindowsFilterSize,                 ml::Vector);  /// windows size to detect changing of control sign (to then apply motor driver dead zone compensation) 0 is no filter. 1,2,3...
