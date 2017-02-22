@@ -105,6 +105,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(max_tau,                               ml::Vector);  /// max torque allowed before stopping the controller
         DECLARE_SIGNAL_IN(percentageDriverDeadZoneCompensation,  ml::Vector);  /// percentatge in [0;1] of the motor driver dead zone that we should compensate 0 is none, 1 is all of it
         DECLARE_SIGNAL_IN(signWindowsFilterSize,                 ml::Vector);  /// windows size to detect changing of control sign (to then apply motor driver dead zone compensation) 0 is no filter. 1,2,3...
+        DECLARE_SIGNAL_IN(emergencyStop,                         bool      );  /// emergency stop input. If true, control is set to zero forever 
         DECLARE_SIGNAL_OUT(pwmDes,                               ml::Vector);
         DECLARE_SIGNAL_OUT(pwmDesSafe,                           ml::Vector);  /// same as pwmDes when everything is fine, 0 otherwise //TODO change since pwmDes is now the desired current and pwmDesSafe is the DAC 
         DECLARE_SIGNAL_OUT(signOfControlFiltered,                ml::Vector);  /// sign of control filtered (indicating dead zone compensation applyed)
@@ -134,8 +135,8 @@ namespace dynamicgraph {
       protected:
         bool    m_initSucceeded;    /// true if the entity has been successfully initialized
         double  m_dt;               /// control loop time period
-        double  m_maxPwm;           /// max PWM
-        bool    m_maxPwm_violated;  /// true if the max PWM has been violated
+        double  m_maxCurrent;       /// control limit in Ampers
+        bool    m_emergency_stop_triggered;  /// true if an emergency condition as been triggered either by an other entity, or by control limit violation
         bool    m_is_first_iter;    /// true at the first iteration, false otherwise
 
         std::vector<bool>         m_signIsPos;      /// Control sign filtered for deadzone compensation

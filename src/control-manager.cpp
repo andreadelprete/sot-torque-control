@@ -36,7 +36,7 @@ namespace dynamicgraph
 #define PROFILE_PWM_DESIRED_COMPUTATION       "Control manager                                        "
 #define PROFILE_DYNAMIC_GRAPH_PERIOD          "Control period                                         "
 
-#define SAFETY_SIGNALS m_max_currentSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN
+#define SAFETY_SIGNALS m_max_currentSIN << m_max_tauSIN << m_tauSIN << m_tau_predictedSIN << m_emergencyStopSIN
 #define INPUT_SIGNALS  m_base6d_encodersSIN << m_percentageDriverDeadZoneCompensationSIN << SAFETY_SIGNALS << m_signWindowsFilterSizeSIN << m_dqSIN << m_bemfFactorSIN
 
       /// Define EntityClassName here rather than in the header file
@@ -63,13 +63,14 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(max_tau,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(percentageDriverDeadZoneCompensation,ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(signWindowsFilterSize, ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(emergencyStop, ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(pwmDes,               ml::Vector, m_base6d_encodersSIN)
             ,CONSTRUCT_SIGNAL_OUT(signOfControl,        ml::Vector, m_pwmDesSOUT)
             ,CONSTRUCT_SIGNAL_OUT(signOfControlFiltered,ml::Vector, m_pwmDesSafeSOUT)
             ,CONSTRUCT_SIGNAL_OUT(pwmDesSafe,ml::Vector, INPUT_SIGNALS << m_pwmDesSOUT)
             ,m_initSucceeded(false)
-            ,m_maxPwm_violated(false)
-            ,m_maxPwm(DEFAULT_MAX_CURRENT)
+            ,m_emergency_stop_triggered(false)
+            ,m_maxCurrent(DEFAULT_MAX_CURRENT)
             ,m_is_first_iter(true)
       {
         m_jointCtrlModes_current.resize(N_JOINTS);
@@ -117,7 +118,7 @@ namespace dynamicgraph
         if(dt<=0.0)
           return SEND_MSG("Timestep must be positive", MSG_TYPE_ERROR);
         m_dt = dt;
-        m_maxPwm_violated = false;
+        m_emergency_stop_triggered = false; 
         m_initSucceeded = true;
       }
 
@@ -199,14 +200,19 @@ namespace dynamicgraph
         const ml::Vector& bemfFactor      = m_bemfFactorSIN(iter);        
         const ml::Vector& percentageDriverDeadZoneCompensation = m_percentageDriverDeadZoneCompensationSIN(iter);
         const ml::Vector& signWindowsFilterSize                = m_signWindowsFilterSizeSIN(iter);
-
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
-
-        if(!m_maxPwm_violated)
+        
+        if(!m_emergency_stop_triggered)
         {
           int cm_id;
           stringstream ss;
+          if(m_emergencyStopSIN.isPlugged())
+          {
+            if (m_emergencyStopSIN(iter))
+              m_emergency_stop_triggered = true;
+              SEND_MSG("Emergency Stop has been triggered by an external entity",MSG_TYPE_ERROR);
+          }
           for(unsigned int i=0; i<N_JOINTS; i++)
           {
             //Trigger sign filter**********************
@@ -247,37 +253,37 @@ namespace dynamicgraph
 
             if(fabs(tau(i)) > tau_max(i))
             {
-              m_maxPwm_violated = true;
+              m_emergency_stop_triggered = true;
               SEND_MSG("Estimated torque "+toString(tau(i))+" > max torque "+toString(tau_max(i))+
                        " for joint "+JointUtil::get_name_from_id(i), MSG_TYPE_ERROR);
               SEND_MSG(", but predicted torque "+toString(tau_predicted(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
-              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
+              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxCurrent)+"A", MSG_TYPE_ERROR);
               break;
             }
 
             if(fabs(tau_predicted(i)) > tau_max(i))
             {
-              m_maxPwm_violated = true;
+              m_emergency_stop_triggered = true;
               SEND_MSG("Predicted torque "+toString(tau_predicted(i))+" > max torque "+toString(tau_max(i))+
                        " for joint "+JointUtil::get_name_from_id(i), MSG_TYPE_ERROR);
               SEND_MSG(", but estimated torque "+toString(tau(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
-              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
+              SEND_MSG(", and current "+toString(pwmDes(i))+"A < "+toString(m_maxCurrent)+"A", MSG_TYPE_ERROR);
               break;
             }
 
             /// if the signal is plugged, read maxPwm from the associated signal
             /// if not use the default value
             if(m_max_currentSIN.isPlugged())
-              m_maxPwm = m_max_currentSIN(iter)(i);
+              m_maxCurrent = m_max_currentSIN(iter)(i);
             else
-              m_maxPwm = DEFAULT_MAX_CURRENT;
+              m_maxCurrent = DEFAULT_MAX_CURRENT;
 
-            if( (fabs(pwmDes(i)) > m_maxPwm) || 
-                (fabs(s(i))      > m_maxPwm * FROM_CURRENT_TO_12_BIT_CTRL) )
+            if( (fabs(pwmDes(i)) > m_maxCurrent) || 
+                (fabs(s(i))      > m_maxCurrent * FROM_CURRENT_TO_12_BIT_CTRL) )
             {
-              m_maxPwm_violated = true;
+              m_emergency_stop_triggered = true;
               SEND_MSG("Joint "+JointUtil::get_name_from_id(i)+" desired current is too large: "+
-                       toString(pwmDes(i))+"A > "+toString(m_maxPwm)+"A", MSG_TYPE_ERROR);
+                       toString(pwmDes(i))+"A > "+toString(m_maxCurrent)+"A", MSG_TYPE_ERROR);
               SEND_MSG(", but estimated torque "+toString(tau(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
               SEND_MSG(", and predicted torque "+toString(tau_predicted(i))+" < "+toString(tau_max(i)), MSG_TYPE_ERROR);
               break;
@@ -285,7 +291,7 @@ namespace dynamicgraph
           }
         }
 
-        if(m_maxPwm_violated)
+        if(m_emergency_stop_triggered)
           for(unsigned int i=0; i<N_JOINTS; i++)
             s(i) = 0.0;
         return s;
@@ -368,7 +374,7 @@ namespace dynamicgraph
         CtrlMode cm;
         if(convertStringToCtrlMode(ctrlMode,cm)==false)
           return;
-
+          
         if(jointName=="all")
         {
           for(unsigned int i=0; i<N_JOINTS; i++)
@@ -376,10 +382,19 @@ namespace dynamicgraph
         }
         else
         {
+          // decompose strings like "rk-rhp-lhp-..."
+          std::stringstream ss(jointName);
+          std::string item;
+          std::list<int> jIdList;
           unsigned int i;
-          if(convertJointNameToJointId(jointName,i)==false)
-            return;
-          setCtrlMode(i,cm);
+          while (std::getline(ss, item, '-'))
+          {
+            SEND_MSG("parsed joint : "+item, MSG_TYPE_INFO);
+            if(convertJointNameToJointId(item,i))
+              jIdList.push_back(i);
+          }
+          for (std::list<int>::iterator it=jIdList.begin(); it != jIdList.end(); ++it)
+            setCtrlMode(*it,cm);
         }
         updateJointCtrlModesOutputSignal();
       }
