@@ -53,6 +53,7 @@ ADD_REQUIRED_DEPENDENCY("jrl-mal >= 1.8.0")
 ADD_REQUIRED_DEPENDENCY("dynamic-graph >= 1.0.0")
 ADD_REQUIRED_DEPENDENCY("dynamic-graph-python")
 ADD_REQUIRED_DEPENDENCY("sot-core")
+ADD_REQUIRED_DEPENDENCY("pinocchio >= 1.2")
 
 # METAPOD configuration
 ADD_REQUIRED_DEPENDENCY("metapod >= 1.0.7")
@@ -84,6 +85,7 @@ SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/force-torque-estimator.hh
   include/sot/torque_control/motor-model.hh
   include/sot/torque_control/joint-trajectory-generator.hh
+  include/sot/torque_control/free-flyer-locator.hh
   include/sot/torque_control/inverse-dynamics-controller.hh
   include/sot/torque_control/position-controller.hh
   include/sot/torque_control/admittance-controller.hh
@@ -116,7 +118,6 @@ SET(${LIBRARY_NAME}_SOURCES ${${LIBRARY_NAME}_HEADERS}
     src/stop-watch.cpp
     src/hrp2-common.cpp
     src/motor-model.cpp
-    
 )
 
 SET(${LIBRARY_NAME}_PYTHON_FILES python/*.py)
@@ -133,6 +134,7 @@ PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} dynamic-graph)
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} dynamic-graph-python)
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} sot-core)
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} metapod)
+PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} pinocchio)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} metapod_hrp2_14)
 
