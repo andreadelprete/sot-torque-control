@@ -45,6 +45,7 @@ SET(plugins
   admittance-controller
   control-manager
   hrp2-device-pos-ctrl
+  free-flyer-locator
   )
 
 #set(ADDITIONAL_feature-task_LIBS feature-generic task)
