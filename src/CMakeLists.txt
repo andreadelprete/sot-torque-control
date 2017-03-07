@@ -41,6 +41,7 @@ SET(plugins
   force-torque-estimator
   joint-trajectory-generator
   inverse-dynamics-controller
+  inverse-dynamics-balance-controller
   position-controller
   admittance-controller
   control-manager

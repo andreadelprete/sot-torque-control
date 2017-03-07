@@ -87,6 +87,7 @@ SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/joint-trajectory-generator.hh
   include/sot/torque_control/free-flyer-locator.hh
   include/sot/torque_control/inverse-dynamics-controller.hh
+  include/sot/torque_control/inverse-dynamics-balance-controller.hh
   include/sot/torque_control/position-controller.hh
   include/sot/torque_control/admittance-controller.hh
   include/sot/torque_control/control-manager.hh
