@@ -533,7 +533,14 @@ namespace dynamicgraph
           // read vel/acc of base link
           // free flyer acc is lin+ang (disagree with Featherstone convention used by metapod)
           m_dq.segment<3>(3)  = m_node_body.body.vi.w();  // ang vel
-          m_ddq.head<3>()     = m_node_body.body.ai.v();  // lin acc
+          if( ::isnan(m_node_body.body.ai.v()[0]))
+          {
+            SEND_MSG("WARN nan detected on base linear velocity. Setting to (0,0,9.81) for hot fix ", MSG_TYPE_INFO);
+            m_ddq.head<3>() = Vector3d::Zero();
+            m_ddq(2) = 9.81;
+          }
+          else
+            m_ddq.head<3>()     = m_node_body.body.ai.v();  // lin acc
           m_ddq.segment<3>(3) = m_node_body.body.ai.w();  // ang acc
           // remove gravity acceleration from IMU's measurement
           m_ddq(2)            -= 9.81; // assume the world z axis points upwards
@@ -586,7 +593,11 @@ namespace dynamicgraph
               m_ftSensRightHand_offset.tail<3>() = ftSens_RH_filter_eig.tail<3>() + RIGHT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_right_hand.joint.f.n();
               m_ftSensLeftHand_offset.head<3>()  = ftSens_LH_filter_eig.head<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.f();
               m_ftSensLeftHand_offset.tail<3>()  = ftSens_LH_filter_eig.tail<3>() + LEFT_HAND_FORCE_SENSOR_MASS_PERCENTAGE*m_node_left_hand.joint.f.n();
-
+              
+              SEND_MSG("w_torso_eig "+toString(w_torso_eig), MSG_TYPE_INFO);  
+              SEND_MSG("dv_torso_eig "+toString(dv_torso_eig), MSG_TYPE_INFO);  
+              SEND_MSG("ddq "+toString(m_ddq.transpose()), MSG_TYPE_INFO);  
+              SEND_MSG("Foot weight "+toString(m_node_right_foot.joint.f.f()), MSG_TYPE_INFO);
               // copy F/T sensor offsets in mal vector read by the command getFTsensorOffsets()
               for(int i=0;i<6;i++)
               {
@@ -763,7 +774,7 @@ namespace dynamicgraph
         return s;
       }
 
-      DEFINE_SIGNAL_OUT_FUNCTION(currentFiltered, ml::Vector) //WORK HERE ************************************************************
+      DEFINE_SIGNAL_OUT_FUNCTION(currentFiltered, ml::Vector) 
       {
         sotDEBUG(15)<<"Compute currentFiltered output signal "<<iter<<endl;
 
