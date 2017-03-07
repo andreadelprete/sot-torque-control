@@ -78,11 +78,6 @@ namespace dynamicgraph
         m_initSucceeded = true;
       }
 
-      //~ void FreeFlyerLocator::resetIntegral()
-      //~ {
-        //~ m_e_integral.setZero(N_JOINTS);
-      //~ }
-
       /* ------------------------------------------------------------------- */
       /* --- SIGNALS ------------------------------------------------------- */
       /* ------------------------------------------------------------------- */
@@ -97,6 +92,7 @@ namespace dynamicgraph
         
         //~ getProfiler().start(PROFILE_FREE_FLYER_COMPUTATION);
         //~ {
+          //~ EIGEN_VECTOR_FROM_SIGNAL(q, m_base6d_encodersSIN(iter));     //n+6
           EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_base6d_encodersSIN(iter));     //n+6
           assert(q.size()==N_JOINTS+6     && "Unexpected size of signal base6d_encoder");
           Eigen::VectorXd q_pin(Eigen::VectorXd::Zero(m_model.nq));
@@ -144,21 +140,42 @@ namespace dynamicgraph
           q_pin[36]=q[11];
           /* Compute kinematic and return q with freeflyer */
           forwardKinematics(m_model,*m_data,q_pin);
-          const se3::SE3 & iMo = m_data->oMi[30].inverse(); 
+          const se3::SE3 & iMo = m_data->oMi[31].inverse(); 
           if(s.size()!=6)
              s.resize(6);
           const Eigen::AngleAxisd aa(iMo.rotation());
+        
           Eigen::VectorXd freeflyer(Eigen::VectorXd::Zero(6));
           Eigen::VectorXd q_out(Eigen::VectorXd::Zero(N_JOINTS+6));
           q_out = q;
-          freeflyer << iMo.translation(), aa.axis() * aa.angle();
+          freeflyer << iMo.translation(), iMo.rotation().eulerAngles(0,1,0);
+          //~ freeflyer << iMo.translation(), aa.axis() * aa.angle();
           freeflyer[2]+=0.105; // due to distance from ankle to ground on HRP2
+          
+          
+          #define pi 3.141592653589793238462643383279502884e+00
+          Eigen::Matrix3d M(iMo.rotation());
+          double r,p,y,m;
+          m = sqrt(M(2, 1) *M(2, 1) + M(2, 2) * M(2, 2));
+          p = atan2(-M(2, 0), m);
+          if (abs(abs(p) - pi / 2) < 0.001 )
+          {
+            r = 0;
+            y = -atan2(M(0, 1), M(1, 1));
+          }
+          else
+          {
+            y = atan2(M(1, 0), M(0, 0)) ;
+            r = atan2(M(2, 1), M(2, 2)) ;
+          }
+          
+          
           q_out(0) = freeflyer(0);
           q_out(1) = freeflyer(1);
           q_out(2) = freeflyer(2);
-          q_out(3) = freeflyer(3);
-          q_out(4) = freeflyer(4);
-          q_out(5) = freeflyer(5);
+          q_out(3) =  r;//freeflyer(3);
+          q_out(4) =  p;//freeflyer(4);
+          q_out(5) =  y;//freeflyer(5);
 
           EIGEN_VECTOR_TO_VECTOR(q_out,s);
         //~ }
