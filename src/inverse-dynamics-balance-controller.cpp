@@ -124,25 +124,37 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_OUT(feet_pos_ref,            ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(feet_pos,                ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(dv_des,                  ml::Vector, INPUT_SIGNALS)
-            
+            ,CONSTRUCT_SIGNAL_INNER(active_joints_checked, ml::Vector, m_active_jointsSIN)
             ,m_initSucceeded(false)
+            ,m_enabled(false)
       {
         Entity::signalRegistration( INPUT_SIGNALS << OUTPUT_SIGNALS );
 
         /* Commands. */
         addCommand("init",
-                   makeCommandVoid1(*this, &InverseDynamicsBalanceController::init,
-                                    docCommandVoid1("Initialize the entity.",
-                                                    "Time period in seconds (double)")));
+                   makeCommandVoid2(*this, &InverseDynamicsBalanceController::init,
+                                    docCommandVoid2("Initialize the entity.",
+                                                    "Time period in seconds (double)",
+                                                    "URDF file path (string)")));
       }
 
-      void InverseDynamicsBalanceController::init(const double& dt)
+      void InverseDynamicsBalanceController::init(const double& dt, const std::string& urdfFile)
       {
         if(dt<=0.0)
-          return SEND_MSG("Timestep must be positive", MSG_TYPE_ERROR);
-        if(!m_qSIN.isPlugged())
-          return SEND_MSG("Init failed: signal q is not plugged", MSG_TYPE_ERROR);
-          //TODO add other tests on mandatory signals
+          return SEND_MSG("Init failed: Timestep must be positive", MSG_TYPE_ERROR);
+        //~ if(!m_qSIN.isPlugged())
+          //~ return SEND_MSG("Init failed: Signal q is not plugged", MSG_TYPE_ERROR);
+        try 
+        {
+          se3::urdf::buildModel(urdfFile,se3::JointModelFreeFlyer(),m_model);
+        } 
+        catch (const std::exception& e) 
+        { 
+          std::cout << e.what();
+          return SEND_MSG("Init failed: Could load URDF :" + urdfFile, MSG_TYPE_ERROR);
+        }
+        m_data = new se3::Data(m_model);
+        cout<<m_model;  
         m_dt = dt;
         m_initSucceeded = true;
       }
@@ -150,12 +162,37 @@ namespace dynamicgraph
       /* ------------------------------------------------------------------- */
       /* --- SIGNALS ------------------------------------------------------- */
       /* ------------------------------------------------------------------- */
+      /** Copy active_joints only if a valid transition occurs. (From all OFF) or (To all OFF)**/
+      DEFINE_SIGNAL_INNER_FUNCTION(active_joints_checked, ml::Vector)
+      {
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
 
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(active_joints, m_active_jointsSIN(iter));
+        if (m_enabled == false)
+        {
+          if (active_joints.any())
+          {
+              /* from all OFF to some ON */
+              m_enabled = true ;
+              EIGEN_VECTOR_TO_VECTOR(active_joints,s);
+          }
+        }
+        else if (!active_joints.any())
+        {
+            /* from some ON to all OFF */
+            m_enabled = false ;
+        }
+        if (m_enabled == false)
+          for(int i=0; i<N_JOINTS; i++)
+            s(i)=false;
+        return s;
+      }
       DEFINE_SIGNAL_OUT_FUNCTION(tau_des,ml::Vector)
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal pwmDes before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal tau_des before initialization!");
           return s;
         }
         getProfiler().start(PROFILE_TAU_DES_COMPUTATION);
@@ -163,6 +200,91 @@ namespace dynamicgraph
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
         return s;
       }
+
+
+      DEFINE_SIGNAL_OUT_FUNCTION(f_des,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+      
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(com,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal com before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+      
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(base_orientation,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal base_orientation before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+      
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(feet_pos_ref,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal feet_pos_ref before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+      
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(feet_pos,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal feet_pos before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+
+
+      DEFINE_SIGNAL_OUT_FUNCTION(dv_des,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal dv_des before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
+
 
       /* --- COMMANDS ---------------------------------------------------------- */
 

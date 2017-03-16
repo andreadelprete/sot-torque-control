@@ -44,6 +44,9 @@
 #include <initializer_list>
 #include "boost/assign.hpp"
 
+/* Pinocchio */
+#include <pinocchio/multibody/model.hpp>
+#include <pinocchio/parsers/urdf.hpp>
 
 namespace dynamicgraph {
   namespace sot {
@@ -65,7 +68,7 @@ namespace dynamicgraph {
         /* --- CONSTRUCTOR ---- */
         InverseDynamicsBalanceController( const std::string & name );
 
-        void init(const double& dt);
+        void init(const double& dt, const std::string& urdfFile);
 
         /* --- SIGNALS --- */
         DECLARE_SIGNAL_IN(com_pos,                  ml::Vector);
@@ -107,7 +110,9 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(feet_pos,                ml::Vector);
         DECLARE_SIGNAL_OUT(dv_des,                  ml::Vector);
         
-
+        /// This signal copies active_joints only if it changes from a all false or to an all false value
+        DECLARE_SIGNAL_INNER(active_joints_checked, ml::Vector);
+        
         /* --- COMMANDS --- */
         /* --- ENTITY INHERITANCE --- */
         virtual void display( std::ostream& os ) const;
@@ -123,11 +128,11 @@ namespace dynamicgraph {
       protected:
         bool              m_initSucceeded;    /// true if the entity has been successfully initialized
         double            m_dt;               /// control loop time period
-
-        /// Integral of the joint tracking errors
-
+        se3::Model        m_model;            /// Pinocchio robot model
+        se3::Data         *m_data;            /// Pinocchio robot data 
+        bool              m_enabled;          /// True if controler is enabled
+        
       }; // class InverseDynamicsBalanceController
-      
     }    // namespace torque_control
   }      // namespace sot
 }        // namespace dynamicgraph
