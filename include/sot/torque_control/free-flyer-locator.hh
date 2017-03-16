@@ -45,13 +45,13 @@
 #include "boost/assign.hpp"
 
 /* Metapod */
-#include <metapod/models/hrp2_14/hrp2_14.hh>
-#include <metapod/algos/rnea.hh>
-#include <metapod/algos/jac.hh>
-#include <metapod/tools/jcalc.hh>
-#include <metapod/tools/bcalc.hh>
-#include <metapod/tools/print.hh>
-#include <metapod/tools/initconf.hh>
+//~ #include <metapod/models/hrp2_14/hrp2_14.hh>
+//~ #include <metapod/algos/rnea.hh>
+//~ #include <metapod/algos/jac.hh>
+//~ #include <metapod/tools/jcalc.hh>
+//~ #include <metapod/tools/bcalc.hh>
+//~ #include <metapod/tools/print.hh>
+//~ #include <metapod/tools/initconf.hh>
 
 /* Pinocchio */
 #include <pinocchio/multibody/model.hpp>
@@ -85,8 +85,8 @@ namespace dynamicgraph {
 
         /* --- SIGNALS --- */
         DECLARE_SIGNAL_IN(base6d_encoders,  ml::Vector);
-        DECLARE_SIGNAL_OUT(freeflyer,      ml::Vector);  /// freeflyer position with angle axis format
-        DECLARE_SIGNAL_OUT(base6dFromFoot_encoders,  ml::Vector);  /// base6d_encoders with base6d filled with base6d from foot position
+        DECLARE_SIGNAL_OUT(freeflyer_aa,      ml::Vector);  /// freeflyer position with angle axis format
+        DECLARE_SIGNAL_OUT(base6dFromFoot_encoders,  ml::Vector);  /// base6d_encoders with base6d in RPY
 
         /* --- COMMANDS --- */
         /* --- ENTITY INHERITANCE --- */
@@ -102,11 +102,9 @@ namespace dynamicgraph {
         
       protected:
         bool              m_initSucceeded;    /// true if the entity has been successfully initialized
-        se3::Model        m_model;
-        se3::Data         *m_data;
-
-        Eigen::VectorXd m_q;
-
+        se3::Model        m_model;            /// Pinocchio robot model
+        se3::Data         *m_data;            /// Pinocchio robot data 
+        se3::SE3          m_Mff;               /// SE3 Transform from center of feet to base
       }; // class FreeFlyerLocator
       
     }    // namespace torque_control

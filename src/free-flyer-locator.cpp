@@ -34,7 +34,7 @@ namespace dynamicgraph
 
 
 #define INPUT_SIGNALS     m_base6d_encodersSIN
-#define OUTPUT_SIGNALS    m_base6dFromFoot_encodersSOUT
+#define OUTPUT_SIGNALS    m_base6dFromFoot_encodersSOUT << m_freeflyer_aaSOUT
 
       /// Define EntityClassName here rather than in the header file
       /// so that it can be used by the macros DEFINE_SIGNAL_**_FUNCTION.
@@ -52,6 +52,7 @@ namespace dynamicgraph
             : Entity(name)
             ,CONSTRUCT_SIGNAL_IN( base6d_encoders,         ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(base6dFromFoot_encoders, ml::Vector, INPUT_SIGNALS)      
+            ,CONSTRUCT_SIGNAL_OUT(freeflyer_aa,            ml::Vector, m_base6dFromFoot_encodersSOUT)      
             ,m_initSucceeded(false)
       {
         Entity::signalRegistration( INPUT_SIGNALS << OUTPUT_SIGNALS );
@@ -74,7 +75,7 @@ namespace dynamicgraph
           return SEND_MSG("Init failed: Could load URDF :" + urdfFile, MSG_TYPE_ERROR);
         }
         m_data = new se3::Data(m_model);
-        cout<<m_model;  
+        //cout<<m_model;  
         m_initSucceeded = true;
       }
 
@@ -86,9 +87,11 @@ namespace dynamicgraph
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal freeflyer before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal base6dFromFoot_encoders before initialization!");
           return s;
         }
+        if(s.size()!=36)
+          s.resize(36);
         
         //~ getProfiler().start(PROFILE_FREE_FLYER_COMPUTATION);
         //~ {
@@ -140,25 +143,23 @@ namespace dynamicgraph
           q_pin[36]=q[11];
           /* Compute kinematic and return q with freeflyer */
           forwardKinematics(m_model,*m_data,q_pin);
-          const se3::SE3 & iMo = m_data->oMi[31].inverse(); 
-          if(s.size()!=6)
-             s.resize(6);
-          const Eigen::AngleAxisd aa(iMo.rotation());
-        
+          const se3::SE3 iMo1(m_data->oMi[25].inverse()); //Left Foot
+          const se3::SE3 iMo2(m_data->oMi[31].inverse()); //Rigth Foot
+          // Average in SE3
+          const se3::SE3::Vector3 w(0.5*(se3::log3(iMo1.rotation())+se3::log3(iMo2.rotation())));
+          m_Mff = se3::SE3(se3::exp3(w), 0.5 * (iMo1.translation()+iMo2.translation() ));
+          
           Eigen::VectorXd freeflyer(Eigen::VectorXd::Zero(6));
           Eigen::VectorXd q_out(Eigen::VectorXd::Zero(N_JOINTS+6));
           q_out = q;
-          freeflyer << iMo.translation(), iMo.rotation().eulerAngles(0,1,0);
-          //~ freeflyer << iMo.translation(), aa.axis() * aa.angle();
+          freeflyer << m_Mff.translation(), m_Mff.rotation().eulerAngles(0,1,0);
           freeflyer[2]+=0.105; // due to distance from ankle to ground on HRP2
-          
-          
-          #define pi 3.141592653589793238462643383279502884e+00
-          Eigen::Matrix3d M(iMo.rotation());
+
+          Eigen::Matrix3d M(m_Mff.rotation());
           double r,p,y,m;
           m = sqrt(M(2, 1) *M(2, 1) + M(2, 2) * M(2, 2));
           p = atan2(-M(2, 0), m);
-          if (abs(abs(p) - pi / 2) < 0.001 )
+          if (abs(abs(p) - M_PI / 2) < 0.001 )
           {
             r = 0;
             y = -atan2(M(0, 1), M(1, 1));
@@ -168,8 +169,7 @@ namespace dynamicgraph
             y = atan2(M(1, 0), M(0, 0)) ;
             r = atan2(M(2, 1), M(2, 2)) ;
           }
-          
-          
+
           q_out(0) = freeflyer(0);
           q_out(1) = freeflyer(1);
           q_out(2) = freeflyer(2);
@@ -181,6 +181,27 @@ namespace dynamicgraph
         //~ }
         //~ getProfiler().stop(PROFILE_FREE_FLYER_COMPUTATION);
 
+        return s;
+      }
+      
+      DEFINE_SIGNAL_OUT_FUNCTION(freeflyer_aa,ml::Vector)
+      {
+        m_base6dFromFoot_encodersSOUT(iter);
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal freeflyer before initialization!");
+          return s;
+        }
+        //oMi is has been calulated before since we depend on base6dFromFoot_encoders signal.
+        //just read the data, convert to axis angle
+        if(s.size()!=6)
+          s.resize(6);
+        //~ const se3::SE3 & iMo = m_data->oMi[31].inverse(); 
+        const Eigen::AngleAxisd aa(m_Mff.rotation()); 
+        Eigen::VectorXd freeflyer(Eigen::VectorXd::Zero(6));               
+        freeflyer << m_Mff.translation(), aa.axis() * aa.angle();
+        freeflyer[2]+=0.105; // due to distance from ankle to ground on HRP2
+        EIGEN_VECTOR_TO_VECTOR(freeflyer,s);
         return s;
       }
 
