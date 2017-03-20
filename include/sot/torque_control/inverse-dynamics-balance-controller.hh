@@ -48,6 +48,14 @@
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/parsers/urdf.hpp>
 
+#include <pininvdyn/robot-wrapper.hpp>
+#include <pininvdyn/solvers/solver-HQP-base.hpp>
+#include <pininvdyn/contacts/contact-6d.hpp>
+#include <pininvdyn/inverse-dynamics-formulation-acc-force.hpp>
+#include <pininvdyn/tasks/task-com-equality.hpp>
+#include <pininvdyn/tasks/task-joint-posture.hpp>
+#include <pininvdyn/trajectories/trajectory-euclidian.hpp>
+
 namespace dynamicgraph {
   namespace sot {
     namespace torque_control {
@@ -88,15 +96,15 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(kd_com,                     ml::Vector);
         DECLARE_SIGNAL_IN(kp_posture,                 ml::Vector);
         DECLARE_SIGNAL_IN(kd_posture,                 ml::Vector);
-        DECLARE_SIGNAL_IN(w_com,                      ml::Vector);
-        DECLARE_SIGNAL_IN(w_posture,                  ml::Vector);
-        DECLARE_SIGNAL_IN(w_base_orientation,         ml::Vector);
-        DECLARE_SIGNAL_IN(w_torques,                  ml::Vector);
-        DECLARE_SIGNAL_IN(w_forces,                   ml::Vector);
+        DECLARE_SIGNAL_IN(w_com,                      double);
+        DECLARE_SIGNAL_IN(w_posture,                  double);
+        DECLARE_SIGNAL_IN(w_base_orientation,         double);
+        DECLARE_SIGNAL_IN(w_torques,                  double);
+        DECLARE_SIGNAL_IN(w_forces,                   double);
         DECLARE_SIGNAL_IN(weight_contact_forces,      ml::Vector);
         DECLARE_SIGNAL_IN(mu,                         double);
         DECLARE_SIGNAL_IN(contact_points,             ml::Matrix);
-        DECLARE_SIGNAL_IN(contact_normals,            ml::Matrix);
+        DECLARE_SIGNAL_IN(contact_normal,             ml::Vector);
         DECLARE_SIGNAL_IN(f_min,                      double);
         DECLARE_SIGNAL_IN(tau_max,                    ml::Vector);
         DECLARE_SIGNAL_IN(q_min,                      ml::Vector);
@@ -107,7 +115,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(tau_estimated,              ml::Vector);
         DECLARE_SIGNAL_IN(q,                          ml::Vector);
         DECLARE_SIGNAL_IN(v,                          ml::Vector);
-        DECLARE_SIGNAL_IN(base_contact_force,         ml::Vector);
+        DECLARE_SIGNAL_IN(wrench_base,                ml::Vector);
         DECLARE_SIGNAL_IN(wrench_left_foot,           ml::Vector);
         DECLARE_SIGNAL_IN(wrench_right_foot,          ml::Vector);
         DECLARE_SIGNAL_IN(active_joints,              ml::Vector);
@@ -136,11 +144,27 @@ namespace dynamicgraph {
         }
         
       protected:
-        bool              m_initSucceeded;    /// true if the entity has been successfully initialized
         double            m_dt;               /// control loop time period
-        se3::Model        m_model;            /// Pinocchio robot model
-        se3::Data         *m_data;            /// Pinocchio robot data 
+        double            m_t;
+        bool              m_initSucceeded;    /// true if the entity has been successfully initialized
         bool              m_enabled;          /// True if controler is enabled
+        bool              m_firstTime;        /// True at the first iteration of the controller
+
+        /// pininvdyn
+        pininvdyn::RobotWrapper *                       m_robot;
+        pininvdyn::solvers::Solver_HQP_base *           m_hqpSolver;
+        pininvdyn::InverseDynamicsFormulationAccForce * m_invDyn;
+        pininvdyn::contacts::Contact6d *                m_contactRF;
+        pininvdyn::contacts::Contact6d *                m_contactLF;
+        pininvdyn::tasks::TaskComEquality *             m_taskCom;
+        pininvdyn::tasks::TaskJointPosture *            m_taskPosture;
+
+        pininvdyn::trajectories::TrajectorySample       m_sampleCom;
+        pininvdyn::trajectories::TrajectorySample       m_samplePosture;
+
+        pininvdyn::math::Vector m_dv;
+        pininvdyn::math::Vector m_f;
+        pininvdyn::math::Vector m_tau;
         
       }; // class InverseDynamicsBalanceController
     }    // namespace torque_control

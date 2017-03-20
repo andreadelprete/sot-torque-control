@@ -21,6 +21,8 @@
 #include <sot/torque_control/commands-helper.hh>
 #include <sot/torque_control/utils/stop-watch.hh>
 
+#include <boost/test/unit_test.hpp>
+
 namespace dynamicgraph
 {
   namespace sot
@@ -31,6 +33,15 @@ namespace dynamicgraph
       using namespace dg;
       using namespace dg::command;
       using namespace std;
+      using namespace pininvdyn;
+      using namespace pininvdyn::trajectories;
+      using namespace pininvdyn::math;
+      using namespace pininvdyn::contacts;
+      using namespace pininvdyn::tasks;
+      using namespace pininvdyn::solvers;
+
+#define REQUIRE_FINITE(A) assert(is_finite(A))
+
 //Size to be aligned                "-------------------------------------------------------"
 #define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsBalanceController: desired tau          "
 
@@ -59,7 +70,7 @@ namespace dynamicgraph
                            << m_weight_contact_forcesSIN \
                            << m_muSIN \
                            << m_contact_pointsSIN \
-                           << m_contact_normalsSIN \
+                           << m_contact_normalSIN \
                            << m_f_minSIN \
                            << m_tau_maxSIN \
                            << m_q_minSIN \
@@ -70,7 +81,7 @@ namespace dynamicgraph
                            << m_tau_estimatedSIN \
                            << m_qSIN \
                            << m_vSIN \
-                           << m_base_contact_forceSIN \
+                           << m_wrench_baseSIN \
                            << m_wrench_left_footSIN  \
                            << m_wrench_right_footSIN  \
                            << m_active_jointsSIN
@@ -114,39 +125,41 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(kd_com,                      ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(kp_posture,                  ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(kd_posture,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(w_com,                    ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(w_posture,                ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(w_base_orientation,       ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(w_torques,                ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(w_forces,                 ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(weight_contact_forces,    ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(mu,                       double)
-            ,CONSTRUCT_SIGNAL_IN(contact_points,           ml::Matrix)
-            ,CONSTRUCT_SIGNAL_IN(contact_normals,          ml::Matrix)
-            ,CONSTRUCT_SIGNAL_IN(f_min,                    double)
-            ,CONSTRUCT_SIGNAL_IN(tau_max,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(q_min,                    ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(q_max,                    ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(dq_max,                   ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(ddq_max,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(dt_joint_pos_limits,      double    )
-            ,CONSTRUCT_SIGNAL_IN(tau_estimated,            ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(q,                        ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(v,                        ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(base_contact_force,       ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(wrench_left_foot,         ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(wrench_right_foot,        ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(active_joints,            ml::Vector)
-            ,CONSTRUCT_SIGNAL_OUT(tau_des,                 ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(f_des,                   ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(dv_des,                  ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(com,                     ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(base_orientation,        ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(left_foot_pos,           ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(right_foot_pos,          ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_INNER(active_joints_checked, ml::Vector, m_active_jointsSIN)
+            ,CONSTRUCT_SIGNAL_IN(w_com,                       double)
+            ,CONSTRUCT_SIGNAL_IN(w_posture,                   double)
+            ,CONSTRUCT_SIGNAL_IN(w_base_orientation,          double)
+            ,CONSTRUCT_SIGNAL_IN(w_torques,                   double)
+            ,CONSTRUCT_SIGNAL_IN(w_forces,                    double)
+            ,CONSTRUCT_SIGNAL_IN(weight_contact_forces,       ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(mu,                          double)
+            ,CONSTRUCT_SIGNAL_IN(contact_points,              ml::Matrix)
+            ,CONSTRUCT_SIGNAL_IN(contact_normal,              ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(f_min,                       double)
+            ,CONSTRUCT_SIGNAL_IN(tau_max,                     ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(q_min,                       ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(q_max,                       ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(dq_max,                      ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(ddq_max,                     ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(dt_joint_pos_limits,         double    )
+            ,CONSTRUCT_SIGNAL_IN(tau_estimated,               ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(q,                           ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(v,                           ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(wrench_base,                 ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(wrench_left_foot,            ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(wrench_right_foot,           ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(active_joints,               ml::Vector)
+            ,CONSTRUCT_SIGNAL_OUT(tau_des,                    ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(f_des,                      ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(dv_des,                     ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(com,                        ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(base_orientation,           ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(left_foot_pos,              ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(right_foot_pos,             ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_INNER(active_joints_checked,    ml::Vector, m_active_jointsSIN)
             ,m_initSucceeded(false)
             ,m_enabled(false)
+            ,m_t(0.0)
+            ,m_firstTime(true)
       {
         Entity::signalRegistration( INPUT_SIGNALS << OUTPUT_SIGNALS );
 
@@ -162,25 +175,95 @@ namespace dynamicgraph
       {
         if(dt<=0.0)
           return SEND_MSG("Init failed: Timestep must be positive", MSG_TYPE_ERROR);
-        //~ if(!m_qSIN.isPlugged())
-          //~ return SEND_MSG("Init failed: Signal q is not plugged", MSG_TYPE_ERROR);
+
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(0));
+        assert(q.size()==N_JOINTS+7);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(0));
+        assert(v.size()==N_JOINTS+6);
+        EIGEN_CONST_MATRIX_FROM_SIGNAL(contactPoints, m_contact_pointsSIN(0));
+        assert(contactPoints.rows()==3 && contactPoints.cols()==4);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(contactNormal, m_contact_normalSIN(0));
+        assert(contactNormal.size()==3);
+//        EIGEN_CONST_VECTOR_FROM_SIGNAL(w_forceReg, m_weight_contact_forcesSIN(0));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_contact, m_kp_constraintsSIN(0));
+        assert(kp_contact.size()==6);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_contact, m_kd_constraintsSIN(0));
+        assert(kd_contact.size()==6);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_com, m_kp_comSIN(0));
+        assert(kp_com.size()==3);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_com, m_kd_comSIN(0));
+        assert(kd_com.size()==3);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_posture, m_kp_postureSIN(0));
+        assert(kp_posture.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_posture, m_kd_postureSIN(0));
+        assert(kd_posture.size()==N_JOINTS);
+
+        const double & w_com = m_w_comSIN(0);
+        const double & w_posture = m_w_postureSIN(0);
+        const double & w_base_orientation = m_w_base_orientationSIN(0);
+        const double & w_torques = m_w_torquesSIN(0);
+        const double & w_forces = m_w_forcesSIN(0);
+        const double & mu = m_muSIN(0);
+        const double & fMin = m_f_minSIN(0);
+
         try 
         {
-          se3::urdf::buildModel(urdfFile,se3::JointModelFreeFlyer(),m_model);
+//          se3::urdf::buildModel(urdfFile,se3::JointModelFreeFlyer(),m_model);
+          vector<string> package_dirs;
+          m_robot = new RobotWrapper(urdfFile, package_dirs, se3::JointModelFreeFlyer());
+
+          assert(m_robot->nv()-6==N_JOINTS);
+          m_dv.setZero(m_robot->nv());
+          m_tau.setZero(m_robot->nv()-6);
+          m_f.setZero(24);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+          m_invDyn = new InverseDynamicsFormulationAccForce("invdyn", *m_robot);
+          m_invDyn->computeProblemData(m_t, q, v);
+
+          m_contactRF = new Contact6d("contact_rfoot", *m_robot, RIGHT_FOOT_FRAME_NAME,
+                                      contactPoints, contactNormal,
+                                      mu, fMin, w_forces);
+          m_contactRF->Kp(kp_contact);
+          m_contactRF->Kd(kd_contact);
+          m_invDyn->addRigidContact(*m_contactRF);
+
+          m_contactLF = new Contact6d("contact_lfoot", *m_robot, LEFT_FOOT_FRAME_NAME,
+                                      contactPoints, contactNormal,
+                                      mu, fMin, w_forces);
+          m_contactLF->Kp(kp_contact);
+          m_contactLF->Kd(kd_contact);
+          m_invDyn->addRigidContact(*m_contactLF);
+
+          m_taskCom = new TaskComEquality("task-com", *m_robot);
+          m_taskCom->Kp(kp_com);
+          m_taskCom->Kd(kd_com);
+          m_invDyn->addMotionTask(*m_taskCom, w_com, 1);
+
+          m_taskPosture = new TaskJointPosture("task-posture", *m_robot);
+          m_taskPosture->Kp(kp_posture);
+          m_taskPosture->Kd(kd_posture);
+          m_invDyn->addMotionTask(*m_taskPosture, w_posture, 1);
+
+          m_sampleCom = TrajectorySample(3);
+          m_samplePosture = TrajectorySample(m_robot->nv()-6);
+
+          m_hqpSolver = Solver_HQP_base::getNewSolver(SOLVER_HQP_EIQUADPROG,
+                                                      "solver-eiquadprog");
+          m_hqpSolver->resize(m_invDyn->nVar(), m_invDyn->nEq(), m_invDyn->nIn());
         } 
         catch (const std::exception& e) 
         { 
           std::cout << e.what();
           return SEND_MSG("Init failed: Could load URDF :" + urdfFile, MSG_TYPE_ERROR);
         }
-        m_data = new se3::Data(m_model);
-        cout<<m_model;  
+//        m_data = new se3::Data(m_model);
+//        cout<<m_model;
         m_dt = dt;
         m_initSucceeded = true;
       }
 
       /* ------------------------------------------------------------------- */
-      /* --- SIGNALS ------------------------------------------------------- */
+      /* --- SIGNALS --------ontact_normal----------------------------------------------- */
       /* ------------------------------------------------------------------- */
       /** Copy active_joints only if a valid transition occurs. (From all OFF) or (To all OFF)**/
       DEFINE_SIGNAL_INNER_FUNCTION(active_joints_checked, ml::Vector)
@@ -216,9 +299,87 @@ namespace dynamicgraph
           SEND_WARNING_STREAM_MSG("Cannot compute signal tau_des before initialization!");
           return s;
         }
+        if(s.size()!=N_JOINTS)
+          s.resize(N_JOINTS);
+
         getProfiler().start(PROFILE_TAU_DES_COMPUTATION);
-        //EIGEN_VECTOR_TO_VECTOR(...,s);
+
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(x_com_ref,   m_com_ref_posSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dx_com_ref,  m_com_ref_velSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(ddx_com_ref, m_com_ref_accSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(q_ref,   m_posture_ref_posSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_ref,  m_posture_ref_velSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_ref, m_posture_ref_accSIN(iter));
+
+        m_sampleCom.pos = x_com_ref;
+        m_sampleCom.vel = dx_com_ref;
+        m_sampleCom.acc = ddx_com_ref;
+        m_samplePosture.pos = q_ref;
+        m_samplePosture.vel = dq_ref;
+        m_samplePosture.acc = ddq_ref;
+
+        m_taskCom->setReference(m_sampleCom);
+        m_taskPosture->setReference(m_samplePosture);
+
+        if(m_firstTime)
+        {
+          m_firstTime = false;
+          m_invDyn->computeProblemData(m_t, q, v);
+//          m_robot->computeAllTerms(m_invDyn->data(), q, v);
+          se3::SE3 H_lf = m_robot->position(m_invDyn->data(),
+                                            m_robot->model().getJointId(LEFT_FOOT_FRAME_NAME));
+          m_contactLF->setReference(H_lf);
+          SEND_MSG("Setting left foot reference to "+toString(H_lf), MSG_TYPE_DEBUG);
+
+          se3::SE3 H_rf = m_robot->position(m_invDyn->data(),
+                                            m_robot->model().getJointId(RIGHT_FOOT_FRAME_NAME));
+          m_contactRF->setReference(H_rf);
+          SEND_MSG("Setting right foot reference to "+toString(H_rf), MSG_TYPE_DEBUG);
+        }
+
+        const HqpData & hqpData = m_invDyn->computeProblemData(m_t, q, v);
+
+        REQUIRE_FINITE(m_taskPosture->getConstraint().matrix());
+        REQUIRE_FINITE(m_taskPosture->getConstraint().vector());
+        REQUIRE_FINITE(m_taskCom->getConstraint().matrix());
+        REQUIRE_FINITE(m_taskCom->getConstraint().vector());
+        REQUIRE_FINITE(m_contactRF->getMotionConstraint().matrix());
+        REQUIRE_FINITE(m_contactRF->getMotionConstraint().vector());
+        REQUIRE_FINITE(m_contactRF->getForceConstraint().matrix());
+        REQUIRE_FINITE(m_contactRF->getForceConstraint().lowerBound());
+        REQUIRE_FINITE(m_contactRF->getForceConstraint().upperBound());
+        REQUIRE_FINITE(m_contactRF->getForceRegularizationTask().matrix());
+        REQUIRE_FINITE(m_contactRF->getForceRegularizationTask().vector());
+        REQUIRE_FINITE(m_contactLF->getMotionConstraint().matrix());
+        REQUIRE_FINITE(m_contactLF->getMotionConstraint().vector());
+        REQUIRE_FINITE(m_contactLF->getForceConstraint().matrix());
+        REQUIRE_FINITE(m_contactLF->getForceConstraint().lowerBound());
+        REQUIRE_FINITE(m_contactLF->getForceConstraint().upperBound());
+        REQUIRE_FINITE(m_contactLF->getForceRegularizationTask().matrix());
+        REQUIRE_FINITE(m_contactLF->getForceRegularizationTask().vector());
+
+        const HqpOutput & sol = m_hqpSolver->solve(hqpData);
+
+        if(sol.status!=HQP_STATUS_OPTIMAL)
+        {
+          SEND_ERROR_STREAM_MSG("HQP solver failed to find a solution: "+toString(sol.status));
+          SEND_MSG("HQP solver failed to find a solution: "+toString(sol.status), MSG_TYPE_ERROR);
+          SEND_MSG(hqpDataToString(hqpData, true), MSG_TYPE_DEBUG);
+          s.resize(0);
+          getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
+          return s;
+        }
+
+        m_dv = sol.x.head(m_robot->nv());
+        m_f = sol.x.tail(24);
+        m_tau = m_invDyn->computeActuatorForces(sol);
+
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
+        m_t += m_dt;
+
+        EIGEN_VECTOR_TO_VECTOR(m_tau, s);
         return s;
       }
 
@@ -229,9 +390,11 @@ namespace dynamicgraph
           SEND_WARNING_STREAM_MSG("Cannot compute signal dv_des before initialization!");
           return s;
         }
-        /*
-         * Code
-         */
+        if(s.size()!=m_robot->nv())
+          s.resize(m_robot->nv());
+        m_tau_desSOUT(iter);
+        for(int i=0; i<m_robot->nv(); i++)
+          s(i)=m_dv(i);
         return s;
       }
 
@@ -242,9 +405,9 @@ namespace dynamicgraph
           SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
           return s;
         }
-        /*
-         * Code
-         */
+        if(s.size()!=24)
+          s.resize(24);
+        EIGEN_VECTOR_TO_VECTOR(m_f, s);
         return s;
       }
       
@@ -256,9 +419,11 @@ namespace dynamicgraph
           SEND_WARNING_STREAM_MSG("Cannot compute signal com before initialization!");
           return s;
         }
-        /*
-         * Code
-         */
+        if(s.size()!=3)
+          s.resize(3);
+        const Vector3 & com = m_robot->com(m_invDyn->data());
+        for(int i=0; i<3; i++)
+          s(i)=com(i);
         return s;
       }
       
