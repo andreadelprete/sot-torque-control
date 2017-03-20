@@ -34,14 +34,23 @@ namespace dynamicgraph
 //Size to be aligned                "-------------------------------------------------------"
 #define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsBalanceController: desired tau          "
 
-#define INPUT_SIGNALS         m_com_posSIN \
-                           << m_com_velSIN \
-                           << m_com_accSIN \
-                           << m_posture_posSIN \
-                           << m_posture_velSIN \
+#define INPUT_SIGNALS         m_com_ref_posSIN \
+                           << m_com_ref_velSIN \
+                           << m_com_ref_accSIN \
+                           << m_posture_ref_posSIN \
+                           << m_posture_ref_velSIN \
+                           << m_posture_ref_accSIN \
+                           << m_base_orientation_ref_posSIN \
+                           << m_base_orientation_ref_velSIN \
+                           << m_base_orientation_ref_accSIN \
                            << m_kp_base_orientationSIN \
+                           << m_kd_base_orientationSIN \
                            << m_kp_constraintsSIN \
                            << m_kd_constraintsSIN \
+                           << m_kp_comSIN \
+                           << m_kd_comSIN \
+                           << m_kp_postureSIN \
+                           << m_kd_postureSIN \
                            << m_w_comSIN \
                            << m_w_postureSIN \
                            << m_w_base_orientationSIN \
@@ -62,15 +71,16 @@ namespace dynamicgraph
                            << m_qSIN \
                            << m_vSIN \
                            << m_base_contact_forceSIN \
-                           << m_feet_forcesSIN  \
+                           << m_wrench_left_footSIN  \
+                           << m_wrench_right_footSIN  \
                            << m_active_jointsSIN
 
 #define OUTPUT_SIGNALS        m_tau_desSOUT \
                            << m_f_desSOUT \
                            << m_comSOUT \
                            << m_base_orientationSOUT \
-                           << m_feet_pos_refSOUT \
-                           << m_feet_posSOUT \
+                           << m_right_foot_posSOUT \
+                           << m_left_foot_posSOUT \
                            << m_dv_desSOUT
 
       /// Define EntityClassName here rather than in the header file
@@ -87,24 +97,33 @@ namespace dynamicgraph
       InverseDynamicsBalanceController::
           InverseDynamicsBalanceController(const std::string& name)
             : Entity(name)
-            ,CONSTRUCT_SIGNAL_IN(com_pos,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(com_vel,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(com_acc,                  ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(posture_pos,              ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(posture_vel,              ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(kp_base_orientation,      ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(kp_constraints,           ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(kd_constraints,           ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(com_ref_pos,                 ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(com_ref_vel,                 ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(com_ref_acc,                 ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(posture_ref_pos,             ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(posture_ref_vel,             ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(posture_ref_acc,             ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(base_orientation_ref_pos,    ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(base_orientation_ref_vel,    ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(base_orientation_ref_acc,    ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kp_base_orientation,         ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kd_base_orientation,         ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kp_constraints,              ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kd_constraints,              ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kp_com,                      ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kd_com,                      ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kp_posture,                  ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kd_posture,                  ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_com,                    ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_posture,                ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_base_orientation,       ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_torques,                ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_forces,                 ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(weight_contact_forces,    ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(mu,                       ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(contact_points,           ml::Vector)// a matrix?
-            ,CONSTRUCT_SIGNAL_IN(contact_normals,          ml::Vector)// a matrix?
-            ,CONSTRUCT_SIGNAL_IN(f_min,                    ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(mu,                       double)
+            ,CONSTRUCT_SIGNAL_IN(contact_points,           ml::Matrix)
+            ,CONSTRUCT_SIGNAL_IN(contact_normals,          ml::Matrix)
+            ,CONSTRUCT_SIGNAL_IN(f_min,                    double)
             ,CONSTRUCT_SIGNAL_IN(tau_max,                  ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(q_min,                    ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(q_max,                    ml::Vector)
@@ -115,15 +134,16 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(q,                        ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(v,                        ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(base_contact_force,       ml::Vector)
-            ,CONSTRUCT_SIGNAL_IN(feet_forces,              ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(wrench_left_foot,         ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(wrench_right_foot,        ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(active_joints,            ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(tau_des,                 ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(f_des,                   ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(dv_des,                  ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(com,                     ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(base_orientation,        ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(feet_pos_ref,            ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(feet_pos,                ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(dv_des,                  ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(left_foot_pos,           ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(right_foot_pos,          ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_INNER(active_joints_checked, ml::Vector, m_active_jointsSIN)
             ,m_initSucceeded(false)
             ,m_enabled(false)
@@ -188,6 +208,7 @@ namespace dynamicgraph
             s(i)=false;
         return s;
       }
+
       DEFINE_SIGNAL_OUT_FUNCTION(tau_des,ml::Vector)
       {
         if(!m_initSucceeded)
@@ -201,6 +222,18 @@ namespace dynamicgraph
         return s;
       }
 
+      DEFINE_SIGNAL_OUT_FUNCTION(dv_des,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal dv_des before initialization!");
+          return s;
+        }
+        /*
+         * Code
+         */
+        return s;
+      }
 
       DEFINE_SIGNAL_OUT_FUNCTION(f_des,ml::Vector)
       {
@@ -243,12 +276,11 @@ namespace dynamicgraph
         return s;
       }
       
-      
-      DEFINE_SIGNAL_OUT_FUNCTION(feet_pos_ref,ml::Vector)
+      DEFINE_SIGNAL_OUT_FUNCTION(left_foot_pos, ml::Vector)
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal feet_pos_ref before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal left_foot_pos before initialization!");
           return s;
         }
         /*
@@ -257,26 +289,11 @@ namespace dynamicgraph
         return s;
       }
       
-      
-      DEFINE_SIGNAL_OUT_FUNCTION(feet_pos,ml::Vector)
+      DEFINE_SIGNAL_OUT_FUNCTION(right_foot_pos, ml::Vector)
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal feet_pos before initialization!");
-          return s;
-        }
-        /*
-         * Code
-         */
-        return s;
-      }
-
-
-      DEFINE_SIGNAL_OUT_FUNCTION(dv_des,ml::Vector)
-      {
-        if(!m_initSucceeded)
-        {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal dv_des before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal right_foot_pos before initialization!");
           return s;
         }
         /*
