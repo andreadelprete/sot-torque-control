@@ -17,11 +17,32 @@ from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
 
-def create_flex_estimator(robot):
+def create_free_flyer_locator(robot,urdf):
+    from dynamic_graph.sot.torque_control.free_flyer_locator import FreeFlyerLocator
+    ff_locator = FreeFlyerLocator("ffLocator");
+    plug(robot.device.robotState, ff_locator.base6d_encoders);
+    plug(ff_locator.base6dFromFoot_encoders,robot.dynamic.position)
+    ff_locator.init(urdf);
+    return ff_locator;
+    
+def create_flex_estimator(robot, dt=0.001):
     from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import HRP2ModelBaseFlexEstimatorIMUForce
-    flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot);
+    flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot, useMocap=False, dt=dt);
+    flex_est.setOn(False)
+    flex_est.interface.setExternalContactPresence(False)
+    #flex_est.enabledContacts_lf_rf_lh_rh.value=(1,1,0,0)
+    flex_est.leftFootVelocity.sin2.value = 36*(0.0,)
+    flex_est.rightFootVelocity.sin2.value = 36*(0.0,)
+    flex_est.inputVel.sin2.value = 36*(0.0,)
+    flex_est.DCom.sin2.value = 36*(0.0,)
+    robot.device.after.addSignal('flextimator.state');
     return flex_est;
-
+    
+def create_floatingBase(flex_est,ff_locator):
+    from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import FromLocalToGLobalFrame 
+    floatingBase = FromLocalToGLobalFrame(flex_est, "FloatingBase")
+    plug(ff_locator.freeflyer_aa, floatingBase.sinPos)
+    return floatingBase
 def create_position_controller(device, estimator, dt=0.001, traj_gen=None):
     posCtrl = PositionController('pos_ctrl')
     posCtrl.Kp.value = tuple(kp_pos);
@@ -180,7 +201,7 @@ def create_admittance_ctrl(device, estimator, ctrl_manager, traj_gen, dt=0.001):
     admit_ctrl.init(dt);
     return admit_ctrl;
 
-def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=None, ctrl_manager=None, inv_dyn=None, adm_ctrl=None):
+def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=None, ctrl_manager=None, inv_dyn=None, adm_ctrl=None, ff_locator=None, floatingBase=None):
     from dynamic_graph.ros import RosImport
     ros = RosImport('rosImport');
     if(robot!=None):
@@ -295,7 +316,18 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(adm_ctrl.qDes,             ros.adm_ctrl_qDes_ros);
         plug(adm_ctrl.dqDes,            ros.adm_ctrl_dqDes_ros);
         plug(adm_ctrl.fRightFootError,  ros.adm_ctrl_fRightFootError_ros);
+    if(ff_locator!=None):
+        plug(ffLocator.base6dFromFoot_encoders,    ros.robotState_ros);
+        ros.add('vector', 'floatingBase_pos_ros', 'floatingBase_pos');
+        plug(floatingBase.soutPos, ros.floatingBase_pos_ros);
+    if(floatingBase!=None):
+        ros.add('vector', 'floatingBase_pos_ros', 'floatingBase_pos');
+        plug(floatingBase.soutPos, ros.floatingBase_pos_ros);
+    
+    
+    
     return ros;
+    
     
 def addTrace(tracer, entity, signalName):
     """
