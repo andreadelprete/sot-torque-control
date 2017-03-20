@@ -49,6 +49,9 @@ namespace dynamicgraph {
 
 #define N_JOINTS 30
 
+#define RIGHT_FOOT_FRAME_NAME "RLEG_JOINT5"
+#define LEFT_FOOT_FRAME_NAME  "LLEG_JOINT5"
+
 const double DEFAULT_MAX_DELTA_Q = 0.1; /// max joint position tracking error [rad]
 
 const double DEFAULT_MAX_CURRENT = 5;     /// max CURRENT (double in [0 Amp, 20 Amp]) 
@@ -344,6 +347,10 @@ const double DEFAULT_MAX_CURRENT = 5;     /// max CURRENT (double in [0 Amp, 20 
       const std::map<unsigned int,std::string> ForceUtil::id_2_name = ForceUtil::create_id_2_name_map(ForceUtil::name_2_id);
       const std::map<unsigned int,ForceLimits> ForceUtil::id_2_limits = ForceUtil::create_id_2_limits_map();
 
+      bool config_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot);
+      bool config_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf);
+      bool velocity_urdf_to_sot(const Eigen::VectorXd & v_urdf, Eigen::VectorXd & v_sot);
+      bool velocity_sot_to_urdf(const Eigen::VectorXd & v_sot, Eigen::VectorXd & v_urdf);
 
     }    // namespace torque_control
   }      // namespace sot
