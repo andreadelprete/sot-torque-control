@@ -177,7 +177,7 @@ namespace dynamicgraph
           return SEND_MSG("Init failed: Timestep must be positive", MSG_TYPE_ERROR);
 
         EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(0));
-        assert(q.size()==N_JOINTS+7);
+        assert(q.size()==N_JOINTS+6);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(0));
         assert(v.size()==N_JOINTS+6);
         EIGEN_CONST_MATRIX_FROM_SIGNAL(contactPoints, m_contact_pointsSIN(0));
@@ -200,8 +200,8 @@ namespace dynamicgraph
 
         const double & w_com = m_w_comSIN(0);
         const double & w_posture = m_w_postureSIN(0);
-        const double & w_base_orientation = m_w_base_orientationSIN(0);
-        const double & w_torques = m_w_torquesSIN(0);
+//        const double & w_base_orientation = m_w_base_orientationSIN(0);
+//        const double & w_torques = m_w_torquesSIN(0);
         const double & w_forces = m_w_forcesSIN(0);
         const double & mu = m_muSIN(0);
         const double & fMin = m_f_minSIN(0);
@@ -213,9 +213,11 @@ namespace dynamicgraph
           m_robot = new RobotWrapper(urdfFile, package_dirs, se3::JointModelFreeFlyer());
 
           assert(m_robot->nv()-6==N_JOINTS);
-          m_dv.setZero(m_robot->nv());
-          m_tau.setZero(m_robot->nv()-6);
+          m_dv_sot.setZero(m_robot->nv());
+          m_tau_sot.setZero(m_robot->nv()-6);
           m_f.setZero(24);
+          m_q_urdf.setZero(m_robot->nq());
+          m_v_urdf.setZero(m_robot->nv());
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
           m_invDyn = new InverseDynamicsFormulationAccForce("invdyn", *m_robot);
           m_invDyn->computeProblemData(m_t, q, v);
@@ -256,8 +258,6 @@ namespace dynamicgraph
           std::cout << e.what();
           return SEND_MSG("Init failed: Could load URDF :" + urdfFile, MSG_TYPE_ERROR);
         }
-//        m_data = new se3::Data(m_model);
-//        cout<<m_model;
         m_dt = dt;
         m_initSucceeded = true;
       }
@@ -318,8 +318,8 @@ namespace dynamicgraph
         getProfiler().start(PROFILE_TAU_DES_COMPUTATION);
 
         m_active_joints_checkedSINNER(iter);
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(iter));
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(q_sot, m_qSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(v_sot, m_vSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(x_com_ref,   m_com_ref_posSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dx_com_ref,  m_com_ref_velSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(ddx_com_ref, m_com_ref_accSIN(iter));
@@ -327,12 +327,15 @@ namespace dynamicgraph
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_ref,  m_posture_ref_velSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_ref, m_posture_ref_accSIN(iter));
 
+        config_sot_to_urdf(q_sot, m_q_urdf);
+        velocity_sot_to_urdf(v_sot, m_v_urdf);
+
         m_sampleCom.pos = x_com_ref;
         m_sampleCom.vel = dx_com_ref;
         m_sampleCom.acc = ddx_com_ref;
-        m_samplePosture.pos = q_ref;
-        m_samplePosture.vel = dq_ref;
-        m_samplePosture.acc = ddq_ref;
+        joints_sot_to_urdf(q_ref, m_samplePosture.pos);
+        joints_sot_to_urdf(dq_ref, m_samplePosture.vel);
+        joints_sot_to_urdf(ddq_ref, m_samplePosture.acc);
 
         m_taskCom->setReference(m_sampleCom);
         m_taskPosture->setReference(m_samplePosture);
@@ -340,7 +343,7 @@ namespace dynamicgraph
         if(m_firstTime)
         {
           m_firstTime = false;
-          m_invDyn->computeProblemData(m_t, q, v);
+          m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
 //          m_robot->computeAllTerms(m_invDyn->data(), q, v);
           se3::SE3 H_lf = m_robot->position(m_invDyn->data(),
                                             m_robot->model().getJointId(LEFT_FOOT_FRAME_NAME));
@@ -353,7 +356,7 @@ namespace dynamicgraph
           SEND_MSG("Setting right foot reference to "+toString(H_rf), MSG_TYPE_DEBUG);
         }
 
-        const HqpData & hqpData = m_invDyn->computeProblemData(m_t, q, v);
+        const HqpData & hqpData = m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
 
         REQUIRE_FINITE(m_taskPosture->getConstraint().matrix());
         REQUIRE_FINITE(m_taskPosture->getConstraint().vector());
@@ -380,20 +383,20 @@ namespace dynamicgraph
         {
           SEND_ERROR_STREAM_MSG("HQP solver failed to find a solution: "+toString(sol.status));
           SEND_MSG("HQP solver failed to find a solution: "+toString(sol.status), MSG_TYPE_ERROR);
-          SEND_MSG(hqpDataToString(hqpData, true), MSG_TYPE_DEBUG);
+          SEND_MSG(hqpDataToString(hqpData, false), MSG_TYPE_DEBUG);
           s.resize(0);
           getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
           return s;
         }
 
-        m_dv = sol.x.head(m_robot->nv());
+        velocity_urdf_to_sot(sol.x.head(m_robot->nv()), m_dv_sot);
         m_f = sol.x.tail(24);
-        m_tau = m_invDyn->computeActuatorForces(sol);
+        joints_urdf_to_sot(m_invDyn->computeActuatorForces(sol), m_tau_sot);
 
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
         m_t += m_dt;
 
-        EIGEN_VECTOR_TO_VECTOR(m_tau, s);
+        EIGEN_VECTOR_TO_VECTOR(m_tau_sot, s);
         return s;
       }
 
@@ -407,8 +410,7 @@ namespace dynamicgraph
         if(s.size()!=m_robot->nv())
           s.resize(m_robot->nv());
         m_tau_desSOUT(iter);
-        for(int i=0; i<m_robot->nv(); i++)
-          s(i)=m_dv(i);
+        EIGEN_VECTOR_TO_VECTOR(m_dv_sot, s);
         return s;
       }
 

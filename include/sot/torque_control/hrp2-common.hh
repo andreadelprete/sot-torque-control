@@ -351,6 +351,8 @@ const double DEFAULT_MAX_CURRENT = 5;     /// max CURRENT (double in [0 Amp, 20 
       bool config_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf);
       bool velocity_urdf_to_sot(const Eigen::VectorXd & v_urdf, Eigen::VectorXd & v_sot);
       bool velocity_sot_to_urdf(const Eigen::VectorXd & v_sot, Eigen::VectorXd & v_urdf);
+      bool joints_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot);
+      bool joints_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf);
 
     }    // namespace torque_control
   }      // namespace sot

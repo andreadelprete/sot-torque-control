@@ -163,9 +163,11 @@ namespace dynamicgraph {
         pininvdyn::trajectories::TrajectorySample       m_sampleCom;
         pininvdyn::trajectories::TrajectorySample       m_samplePosture;
 
-        pininvdyn::math::Vector m_dv;
+        pininvdyn::math::Vector m_dv_sot;
         pininvdyn::math::Vector m_f;
-        pininvdyn::math::Vector m_tau;
+        pininvdyn::math::Vector m_tau_sot;
+        pininvdyn::math::Vector m_q_urdf;
+        pininvdyn::math::Vector m_v_urdf;
         
       }; // class InverseDynamicsBalanceController
     }    // namespace torque_control

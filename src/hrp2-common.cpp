@@ -31,6 +31,8 @@ namespace dynamicgraph
 
       bool config_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot)
       {
+        assert(q_urdf.size()==37);
+        assert(q_sot.size()==36);
         // ********* Quat to RPY *********
         const double W = q_urdf[6];
         const double X = q_urdf[3];
@@ -98,7 +100,8 @@ namespace dynamicgraph
 
       bool config_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf)
       {
-
+        assert(q_urdf.size()==37);
+        assert(q_sot.size()==36);
         // *********  RPY to Quat *********
         const double r = q_sot[3];
         const double p = q_sot[4];
@@ -156,6 +159,8 @@ namespace dynamicgraph
 
       bool velocity_urdf_to_sot(const Eigen::VectorXd & v_urdf, Eigen::VectorXd & v_sot)
       {
+        assert(v_urdf.size()==36);
+        assert(v_sot.size()==36);
         v_sot[0 ]=v_urdf[0 ]; //BASE
         v_sot[1 ]=v_urdf[1 ];
         v_sot[2 ]=v_urdf[2 ];
@@ -190,7 +195,7 @@ namespace dynamicgraph
         v_sot[14]=v_urdf[26];
         v_sot[15]=v_urdf[27];
         v_sot[16]=v_urdf[28];
-        v_sot[17]=v_urdf[39];
+        v_sot[17]=v_urdf[29];
 
         v_sot[6 ]=v_urdf[30]; //RLEG
         v_sot[7 ]=v_urdf[31];
@@ -203,6 +208,8 @@ namespace dynamicgraph
 
       bool velocity_sot_to_urdf(const Eigen::VectorXd & v_sot, Eigen::VectorXd & v_urdf)
       {
+        assert(v_urdf.size()==36);
+        assert(v_sot.size()==36);
         v_urdf[0 ]=v_sot[0 ]; //BASE
         v_urdf[1 ]=v_sot[1 ];
         v_urdf[2 ]=v_sot[2 ];
@@ -245,6 +252,93 @@ namespace dynamicgraph
         v_urdf[33]=v_sot[9 ];
         v_urdf[34]=v_sot[10];
         v_urdf[35]=v_sot[11];
+        return true;
+      }
+
+      bool joints_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot)
+      {
+        assert(q_urdf.size()==30);
+        assert(q_sot.size()==30);
+
+        q_sot[12]=q_urdf[0 ]; //HEAD
+        q_sot[13]=q_urdf[1 ];
+
+        q_sot[14]=q_urdf[2 ]; //CHEST
+        q_sot[15]=q_urdf[3];
+
+        q_sot[23]=q_urdf[4]; //LARM
+        q_sot[24]=q_urdf[5];
+        q_sot[25]=q_urdf[6];
+        q_sot[26]=q_urdf[7];
+        q_sot[27]=q_urdf[8];
+        q_sot[28]=q_urdf[9];
+        q_sot[29]=q_urdf[10];
+
+        q_sot[16]=q_urdf[11]; //RARM
+        q_sot[17]=q_urdf[12];
+        q_sot[18]=q_urdf[13];
+        q_sot[19]=q_urdf[14];
+        q_sot[20]=q_urdf[15];
+        q_sot[21]=q_urdf[16];
+        q_sot[22]=q_urdf[17];
+
+        q_sot[ 6]=q_urdf[18]; //LLEG
+        q_sot[ 7]=q_urdf[19];
+        q_sot[ 8]=q_urdf[20];
+        q_sot[ 9]=q_urdf[21];
+        q_sot[10]=q_urdf[22];
+        q_sot[11]=q_urdf[23];
+
+        q_sot[0 ]=q_urdf[24]; //RLEG
+        q_sot[1 ]=q_urdf[25];
+        q_sot[2 ]=q_urdf[26];
+        q_sot[3 ]=q_urdf[27];
+        q_sot[4 ]=q_urdf[28];
+        q_sot[5 ]=q_urdf[29];
+        return true;
+      }
+
+      bool joints_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf)
+      {
+        assert(q_urdf.size()==30);
+        assert(q_sot.size()==30);
+
+        q_urdf[0 ]=q_sot[12]; //HEAD
+        q_urdf[1 ]=q_sot[13];
+
+        q_urdf[2 ]=q_sot[24]; //CHEST
+        q_urdf[3 ]=q_sot[25];
+
+        q_urdf[4 ]=q_sot[23]; //LARM
+        q_urdf[5 ]=q_sot[24];
+        q_urdf[6 ]=q_sot[25];
+        q_urdf[7 ]=q_sot[26];
+        q_urdf[8 ]=q_sot[27];
+        q_urdf[9 ]=q_sot[28];
+        q_urdf[10]=q_sot[29];
+
+        q_urdf[11]=q_sot[16]; //RARM
+        q_urdf[12]=q_sot[17];
+        q_urdf[13]=q_sot[18];
+        q_urdf[14]=q_sot[19];
+        q_urdf[15]=q_sot[20];
+        q_urdf[16]=q_sot[21];
+        q_urdf[17]=q_sot[22];
+
+        q_urdf[18]=q_sot[ 6]; //LLEG
+        q_urdf[19]=q_sot[ 7];
+        q_urdf[20]=q_sot[ 8];
+        q_urdf[21]=q_sot[ 9];
+        q_urdf[22]=q_sot[10];
+        q_urdf[23]=q_sot[11];
+
+
+        q_urdf[24]=q_sot[0]; //RLEG
+        q_urdf[25]=q_sot[1];
+        q_urdf[26]=q_sot[2];
+        q_urdf[27]=q_sot[3];
+        q_urdf[28]=q_sot[4];
+        q_urdf[29]=q_sot[5];
         return true;
       }
 
