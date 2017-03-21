@@ -319,8 +319,6 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(adm_ctrl.fRightFootError,  ros.adm_ctrl_fRightFootError_ros);
     if(ff_locator!=None):
         plug(ffLocator.base6dFromFoot_encoders,    ros.robotState_ros);
-        ros.add('vector', 'floatingBase_pos_ros', 'floatingBase_pos');
-        plug(floatingBase.soutPos, ros.floatingBase_pos_ros);
     if(floatingBase!=None):
         ros.add('vector', 'floatingBase_pos_ros', 'floatingBase_pos');
         plug(floatingBase.soutPos, ros.floatingBase_pos_ros);

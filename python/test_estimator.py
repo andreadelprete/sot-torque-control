@@ -19,11 +19,13 @@ def main_pre_start_pwm(robot,dt=0.001,delay=0.01):
     torque_ctrl     = create_torque_controller(robot.device, estimator);    
     inv_dyn         = create_inverse_dynamics(robot.device, estimator, torque_ctrl, traj_gen, dt);    
     ctrl_manager    = create_ctrl_manager(robot.device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt);
-        
+    ff_locator      = create_free_flyer_locator(robot,'/opt/openrobots/share/hrp2_14_description/urdf/hrp2_14.urdf')
+    flex_est        = create_flex_estimator(robot,dt)
+    floatingBase    = create_floatingBase(flex_est,ff_locator)
+
     estimator.gyroscope.value = (0.0, 0.0, 0.0);
     estimator.accelerometer.value = (0.0, 0.0, 9.81);
-        
-    return (estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,pos_ctrl);
+    return (estimator,torque_ctrl,traj_gen,ctrl_manager,inv_dyn,pos_ctrl,ff_locator,flex_est,floatingBase);
 
 ''' Main function to call before starting the graph. '''
 def main_pre_start_pwm_noTorqueControl(robot,dt=0.001,delay=0.01):
@@ -73,8 +75,8 @@ def main_pre_start(task,robot,dt=0.001,delay=0.01):
 
     
 ''' Main function to call after having started the graph. '''
-def main_post_start(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, adm_ctrl):
-    ros = create_ros_topics(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, adm_ctrl);
+def main_post_start(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, adm_ctrl, ff_locator, floatingBase):
+    ros = create_ros_topics(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, adm_ctrl, ff_locator, floatingBase);
     return ros;
     
 def start_tracer(robot, estimator, torque_ctrl, traj_gen, ctrl_manager, inv_dyn, adm_ctrl):
