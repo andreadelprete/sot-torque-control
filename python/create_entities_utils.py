@@ -13,6 +13,7 @@ from dynamic_graph.sot.torque_control.inverse_dynamics_controller import Inverse
 from dynamic_graph.sot.torque_control.admittance_controller import AdmittanceController
 from dynamic_graph.sot.torque_control.position_controller import PositionController
 from dynamic_graph.tracer_real_time import TracerRealTime
+from hrp2_motors_parameters import NJ
 from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
@@ -77,8 +78,8 @@ def create_estimator(device, dt, delay, traj_gen=None):
     if(traj_gen!=None):
         plug(traj_gen.dq,       estimator.dqRef);
         plug(traj_gen.ddq,      estimator.ddqRef);
-    estimator.wCurrentTrust.value     = tuple(30*[0.5,])
-    estimator.saturationCurrent.value = tuple(30*[5.0,])
+    estimator.wCurrentTrust.value     = tuple(NJ*[0.5,])
+    estimator.saturationCurrent.value = tuple(NJ*[5.0,])
     estimator.motorParameterKt_p.value  = tuple(Kt_p)
     estimator.motorParameterKt_n.value  = tuple(Kt_n)
     estimator.motorParameterKf_p.value  = tuple(Kf_p)
