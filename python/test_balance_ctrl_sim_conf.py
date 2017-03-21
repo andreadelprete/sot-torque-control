@@ -17,6 +17,11 @@ q0 = np.matrix([0.0, 0.0, 0.648702, 0.0, 0.0 , 0.0, 1.0,                        
                 0.0, 0.0, -0.453785606, 0.872664626, -0.41887902, 0.0,               # RLEG       31-36
                 ]).T;
 v0 = np.matrix(np.zeros(36)).T;
+active_joints = (0, 0, 0, 0,                # chest-head
+                 0, 0, 0, 0, 0, 0, 0,       # larm
+                 0, 0, 0, 0, 0, 0, 0,       # rarm
+                 1, 1, 1, 1, 1, 1,          # lleg
+                 1, 1, 1, 1, 1, 1)          # 
 
 ''' CONTROLLER CONFIGURATION '''
 ENABLE_CAPTURE_POINT_LIMITS     = False;

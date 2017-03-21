@@ -279,6 +279,19 @@ namespace dynamicgraph
               /* from all OFF to some ON */
               m_enabled = true ;
               EIGEN_VECTOR_TO_VECTOR(active_joints,s);
+
+              m_taskBlockedJoints = new TaskJointPosture("task-posture", *m_robot);
+              Eigen::VectorXd blocked_joints(N_JOINTS);
+              for(unsigned int i=0; i<N_JOINTS; i++)
+                if(active_joints(i)==0.0)
+                  blocked_joints(i) = 1.0;
+                else
+                  blocked_joints(i) = 0.0;
+              SEND_MSG("Blocked joints: "+toString(blocked_joints.transpose()), MSG_TYPE_INFO);
+              m_taskBlockedJoints->mask(blocked_joints);
+              TrajectorySample ref_zero(N_JOINTS);
+              m_taskBlockedJoints->setReference(ref_zero);
+              m_invDyn->addMotionTask(*m_taskBlockedJoints, 1.0, 0);
           }
         }
         else if (!active_joints.any())
@@ -304,6 +317,7 @@ namespace dynamicgraph
 
         getProfiler().start(PROFILE_TAU_DES_COMPUTATION);
 
+        m_active_joints_checkedSINNER(iter);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(iter));
         EIGEN_CONST_VECTOR_FROM_SIGNAL(x_com_ref,   m_com_ref_posSIN(iter));

@@ -118,7 +118,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(wrench_base,                ml::Vector);
         DECLARE_SIGNAL_IN(wrench_left_foot,           ml::Vector);
         DECLARE_SIGNAL_IN(wrench_right_foot,          ml::Vector);
-        DECLARE_SIGNAL_IN(active_joints,              ml::Vector);
+        DECLARE_SIGNAL_IN(active_joints,              ml::Vector); /// mask with 1 for controlled joints, 0 otherwise
         
         DECLARE_SIGNAL_OUT(tau_des,                   ml::Vector);
         DECLARE_SIGNAL_OUT(dv_des,                    ml::Vector);
@@ -158,6 +158,7 @@ namespace dynamicgraph {
         pininvdyn::contacts::Contact6d *                m_contactLF;
         pininvdyn::tasks::TaskComEquality *             m_taskCom;
         pininvdyn::tasks::TaskJointPosture *            m_taskPosture;
+        pininvdyn::tasks::TaskJointPosture *            m_taskBlockedJoints;
 
         pininvdyn::trajectories::TrajectorySample       m_sampleCom;
         pininvdyn::trajectories::TrajectorySample       m_samplePosture;

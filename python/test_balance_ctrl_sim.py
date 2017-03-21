@@ -67,6 +67,7 @@ def main(task='', dt=0.001, delay=0.01):
     ctrl.w_torques.value = conf.w_torques;
     
     ctrl.init(dt, conf.urdfFileName);
+    ctrl.active_joints.value = conf.active_joints;
     
     t = 0.0;
     dv = mat_zeros(nv);
@@ -75,10 +76,13 @@ def main(task='', dt=0.001, delay=0.01):
         ctrl.v.value = to_tuple(simulator.v);
         ctrl.dv_des.recompute(i);
         dv = np.matrix(ctrl.dv_des.value).T;
+        if(norm(dv[6:24]) > 1e-8):
+            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
         if(i%100==0):
             print "t=%.3f dv=%.1f v=%.1f" % (t, norm(dv), norm(simulator.v));
         simulator.integrateAcc(t, dt, dv, None, None, conf.PLAY_MOTION_WHILE_COMPUTING);
         t += dt;
+#        sleep(0.001);
     
     return (simulator, ctrl);
     
