@@ -18,11 +18,12 @@ from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
 
-def create_free_flyer_locator(robot,urdf):
+def create_free_flyer_locator(device, urdf, dynamic=None):
     from dynamic_graph.sot.torque_control.free_flyer_locator import FreeFlyerLocator
     ff_locator = FreeFlyerLocator("ffLocator");
-    plug(robot.device.robotState, ff_locator.base6d_encoders);
-    plug(ff_locator.base6dFromFoot_encoders,robot.dynamic.position)
+    plug(device.robotState, ff_locator.base6d_encoders);
+    if(dynamic!=None):
+        plug(ff_locator.base6dFromFoot_encoders, dynamic.position);
     ff_locator.init(urdf);
     return ff_locator;
     
@@ -44,6 +45,7 @@ def create_floatingBase(flex_est,ff_locator):
     floatingBase = FromLocalToGLobalFrame(flex_est, "FloatingBase")
     plug(ff_locator.freeflyer_aa, floatingBase.sinPos)
     return floatingBase
+    
 def create_position_controller(device, estimator, dt=0.001, traj_gen=None):
     posCtrl = PositionController('pos_ctrl')
     posCtrl.Kp.value = tuple(kp_pos);
@@ -171,7 +173,7 @@ def create_ctrl_manager(device, torque_ctrl, pos_ctrl, inv_dyn, estimator, dt=0.
     plug(estimator.jointsVelocities,    ctrl_manager.dq);
     plug(torque_ctrl.controlCurrent,    ctrl_manager.ctrl_torque);
     plug(pos_ctrl.pwmDes,               ctrl_manager.ctrl_pos);
-    plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.controlledJoints);
+    plug(ctrl_manager.joints_ctrl_mode_torque,  inv_dyn.active_joints);
     ctrl_manager.setCtrlMode("all", "pos");
     ctrl_manager.init(dt);
     return ctrl_manager;
