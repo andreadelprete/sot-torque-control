@@ -43,7 +43,8 @@ namespace dynamicgraph
 #define REQUIRE_FINITE(A) assert(is_finite(A))
 
 //Size to be aligned                "-------------------------------------------------------"
-#define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsBalanceController: desired tau          "
+#define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsBalanceController: desired tau"
+#define PROFILE_HQP_SOLUTION        "InverseDynamicsBalanceController: HQP"
 
 #define INPUT_SIGNALS         m_com_ref_posSIN \
                            << m_com_ref_velSIN \
@@ -358,26 +359,9 @@ namespace dynamicgraph
 
         const HqpData & hqpData = m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
 
-        REQUIRE_FINITE(m_taskPosture->getConstraint().matrix());
-        REQUIRE_FINITE(m_taskPosture->getConstraint().vector());
-        REQUIRE_FINITE(m_taskCom->getConstraint().matrix());
-        REQUIRE_FINITE(m_taskCom->getConstraint().vector());
-        REQUIRE_FINITE(m_contactRF->getMotionConstraint().matrix());
-        REQUIRE_FINITE(m_contactRF->getMotionConstraint().vector());
-        REQUIRE_FINITE(m_contactRF->getForceConstraint().matrix());
-        REQUIRE_FINITE(m_contactRF->getForceConstraint().lowerBound());
-        REQUIRE_FINITE(m_contactRF->getForceConstraint().upperBound());
-        REQUIRE_FINITE(m_contactRF->getForceRegularizationTask().matrix());
-        REQUIRE_FINITE(m_contactRF->getForceRegularizationTask().vector());
-        REQUIRE_FINITE(m_contactLF->getMotionConstraint().matrix());
-        REQUIRE_FINITE(m_contactLF->getMotionConstraint().vector());
-        REQUIRE_FINITE(m_contactLF->getForceConstraint().matrix());
-        REQUIRE_FINITE(m_contactLF->getForceConstraint().lowerBound());
-        REQUIRE_FINITE(m_contactLF->getForceConstraint().upperBound());
-        REQUIRE_FINITE(m_contactLF->getForceRegularizationTask().matrix());
-        REQUIRE_FINITE(m_contactLF->getForceRegularizationTask().vector());
-
+        getProfiler().start(PROFILE_HQP_SOLUTION);
         const HqpOutput & sol = m_hqpSolver->solve(hqpData);
+        getProfiler().stop(PROFILE_HQP_SOLUTION);
 
         if(sol.status!=HQP_STATUS_OPTIMAL)
         {
@@ -423,6 +407,7 @@ namespace dynamicgraph
         }
         if(s.size()!=24)
           s.resize(24);
+        m_tau_desSOUT(iter);
         EIGEN_VECTOR_TO_VECTOR(m_f, s);
         return s;
       }
