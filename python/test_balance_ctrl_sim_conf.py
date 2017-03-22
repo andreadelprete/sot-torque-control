@@ -26,13 +26,19 @@ q0_sot = (  # Free flyer
             # Arms
             0.261799, -0.17453, 0., -0.523599, 0., 0., 0.1,
             0.261799, 0.17453,  0., -0.523599, 0., 0., 0.1);
+COM_DES = (0.01, 0.0, 0.81);
           
 v0 = np.matrix(np.zeros(36)).T;
-active_joints = (0, 0, 0, 0,                # chest-head
+active_joints = (1, 1, 1, 1, 1, 1,          # lleg
+                 1, 1, 1, 1, 1, 1,          # rleg
+                 0, 0, 0, 0,                # chest-head
                  0, 0, 0, 0, 0, 0, 0,       # larm
-                 0, 0, 0, 0, 0, 0, 0,       # rarm
-                 1, 1, 1, 1, 1, 1,          # lleg
-                 1, 1, 1, 1, 1, 1)          # 
+                 0, 0, 0, 0, 0, 0, 0)       # rarm
+#active_joints = (0, 0, 0, 0,                # chest-head
+#                 0, 0, 0, 0, 0, 0, 0,       # larm
+#                 0, 0, 0, 0, 0, 0, 0,       # rarm
+#                 1, 1, 1, 1, 1, 1,          # lleg
+#                 1, 1, 1, 1, 1, 1)          # 
 
 ''' CONTROLLER CONFIGURATION '''
 ENABLE_CAPTURE_POINT_LIMITS     = False;

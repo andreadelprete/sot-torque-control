@@ -52,8 +52,8 @@ def create_device(q=None):
     
 def main(dt=0.001, delay=0.01):
     np.set_printoptions(precision=2, suppress=True);
-    COM_DES_1 = (0.012, 0.1, 0.51);
-    COM_DES_2 = (0.012, -0.1, 0.71);
+    COM_DES_1 = (0.012, 0.1, 0.81);
+    COM_DES_2 = (0.012, -0.1, 0.81);
     dt = conf.dt;
     q0 = conf.q0_urdf;
     v0 = conf.v0;
@@ -121,22 +121,42 @@ def main(dt=0.001, delay=0.01):
     t = 0.0;
     v = mat_zeros(nv);
     dv = mat_zeros(nv);
+    x_rf = robot.framePosition(robot.model.getFrameId('RLEG_JOINT5')).translation;
+    x_lf = robot.framePosition(robot.model.getFrameId('LLEG_JOINT5')).translation;
     for i in range(conf.MAX_TEST_DURATION):
 #        if(norm(dv[6:24]) > 1e-8):
 #            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
         device.increment(dt);
-        q = np.matrix(device.state.value).T;
-        v = np.matrix(device.velocity.value).T;
-        dv = np.matrix(ctrl.dv_des.value).T;
+        
+        if(i==1500):
+            ctrl.com_ref_pos.value = COM_DES_2;
+        if(i%10==0):
+            q = np.matrix(device.state.value).T;
+            q_urdf = config_sot_to_urdf(q);
+            simulator.viewer.updateRobotConfig(q_urdf);
+            ctrl.f_des_right_foot.recompute(i);
+            ctrl.f_des_left_foot.recompute(i);
+            f_rf = np.matrix(ctrl.f_des_right_foot.value).T
+            f_lf = np.matrix(ctrl.f_des_left_foot.value).T
+            simulator.updateContactForcesInViewer(['rf', 'lf'], 
+                                                  [x_rf, x_lf], 
+                                                  [f_rf, f_lf]);
+            ctrl.com.recompute(i);
+            com = np.matrix(ctrl.com.value).T
+            com[2,0] = 0.0;
+            simulator.updateComPositionInViewer(com);
         if(i%100==0):
             ctrl.com.recompute(i);
             com = np.matrix(ctrl.com.value).T
-            print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T;
-        if(i==1500):
-            ctrl.com_ref_pos.value = COM_DES_2;
-        if(i%10):
-            q_urdf = config_sot_to_urdf(q);
-            simulator.viewer.updateRobotConfig(q_urdf);
+            v = np.matrix(device.velocity.value).T;
+            dv = np.matrix(ctrl.dv_des.value).T;
+            print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T,
+            print "zmp_lf", f_lf[3:5].T/f_lf[2,0],
+            print "zmp_rf", f_rf[3:5].T/f_rf[2,0];
+            
+        if(i==2):
+            ctrl_manager = ControlManager("ctrl_man");
+            ctrl_manager.resetProfiler();
         t += dt;
     
     return (simulator, ctrl);
