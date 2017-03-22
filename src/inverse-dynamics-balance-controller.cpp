@@ -88,7 +88,8 @@ namespace dynamicgraph
                            << m_active_jointsSIN
 
 #define OUTPUT_SIGNALS        m_tau_desSOUT \
-                           << m_f_desSOUT \
+                           << m_f_des_right_footSOUT \
+                           << m_f_des_left_footSOUT \
                            << m_comSOUT \
                            << m_base_orientationSOUT \
                            << m_right_foot_posSOUT \
@@ -150,7 +151,8 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(wrench_right_foot,           ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(active_joints,               ml::Vector)
             ,CONSTRUCT_SIGNAL_OUT(tau_des,                    ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(f_des,                      ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(f_des_right_foot,           ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(f_des_left_foot,            ml::Vector, m_tau_desSOUT)
             ,CONSTRUCT_SIGNAL_OUT(dv_des,                     ml::Vector, m_tau_desSOUT)
             ,CONSTRUCT_SIGNAL_OUT(com,                        ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(base_orientation,           ml::Vector, INPUT_SIGNALS)
@@ -272,19 +274,21 @@ namespace dynamicgraph
         if(s.size()!=N_JOINTS)
           s.resize(N_JOINTS);
 
-        EIGEN_CONST_VECTOR_FROM_SIGNAL(active_joints, m_active_jointsSIN(iter));
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(active_joints_sot, m_active_jointsSIN(iter));
         if (m_enabled == false)
         {
-          if (active_joints.any())
+          if (active_joints_sot.any())
           {
               /* from all OFF to some ON */
               m_enabled = true ;
-              EIGEN_VECTOR_TO_VECTOR(active_joints,s);
+              EIGEN_VECTOR_TO_VECTOR(active_joints_sot, s);
+              Eigen::VectorXd active_joints_urdf(N_JOINTS);
+              joints_sot_to_urdf(active_joints_sot, active_joints_urdf);
 
               m_taskBlockedJoints = new TaskJointPosture("task-posture", *m_robot);
               Eigen::VectorXd blocked_joints(N_JOINTS);
               for(unsigned int i=0; i<N_JOINTS; i++)
-                if(active_joints(i)==0.0)
+                if(active_joints_urdf(i)==0.0)
                   blocked_joints(i) = 1.0;
                 else
                   blocked_joints(i) = 0.0;
@@ -295,7 +299,7 @@ namespace dynamicgraph
               m_invDyn->addMotionTask(*m_taskBlockedJoints, 1.0, 0);
           }
         }
-        else if (!active_joints.any())
+        else if (!active_joints_sot.any())
         {
             /* from some ON to all OFF */
             m_enabled = false ;
@@ -398,17 +402,35 @@ namespace dynamicgraph
         return s;
       }
 
-      DEFINE_SIGNAL_OUT_FUNCTION(f_des,ml::Vector)
+      DEFINE_SIGNAL_OUT_FUNCTION(f_des_right_foot,ml::Vector)
       {
         if(!m_initSucceeded)
         {
           SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
           return s;
         }
-        if(s.size()!=24)
-          s.resize(24);
+        if(s.size()!=6)
+          s.resize(6);
         m_tau_desSOUT(iter);
-        EIGEN_VECTOR_TO_VECTOR(m_f, s);
+        const Eigen::MatrixXd & T = m_contactRF->getForceGeneratorMatrix();
+        m_f_RF = T*m_f.head<12>();
+        EIGEN_VECTOR_TO_VECTOR(m_f_RF, s);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(f_des_left_foot,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
+          return s;
+        }
+        if(s.size()!=6)
+          s.resize(6);
+        m_tau_desSOUT(iter);
+        const Eigen::MatrixXd & T = m_contactLF->getForceGeneratorMatrix();
+        m_f_LF = T*m_f.tail<12>();
+        EIGEN_VECTOR_TO_VECTOR(m_f_LF, s);
         return s;
       }
       

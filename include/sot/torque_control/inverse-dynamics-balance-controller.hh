@@ -122,7 +122,8 @@ namespace dynamicgraph {
         
         DECLARE_SIGNAL_OUT(tau_des,                   ml::Vector);
         DECLARE_SIGNAL_OUT(dv_des,                    ml::Vector);
-        DECLARE_SIGNAL_OUT(f_des,                     ml::Vector);
+        DECLARE_SIGNAL_OUT(f_des_right_foot,          ml::Vector);
+        DECLARE_SIGNAL_OUT(f_des_left_foot,           ml::Vector);
         DECLARE_SIGNAL_OUT(com,                       ml::Vector);
         DECLARE_SIGNAL_OUT(base_orientation,          ml::Vector);
         DECLARE_SIGNAL_OUT(right_foot_pos,            ml::Vector);
@@ -164,7 +165,9 @@ namespace dynamicgraph {
         pininvdyn::trajectories::TrajectorySample       m_samplePosture;
 
         pininvdyn::math::Vector m_dv_sot;
-        pininvdyn::math::Vector m_f;
+        pininvdyn::math::Vector m_f;        /// force coefficients (24d)
+        pininvdyn::math::Vector m_f_RF;     /// 6d wrench right foot
+        pininvdyn::math::Vector m_f_LF;     /// 6d wrench left foot
         pininvdyn::math::Vector m_tau_sot;
         pininvdyn::math::Vector m_q_urdf;
         pininvdyn::math::Vector m_v_urdf;
