@@ -10,6 +10,7 @@ from dynamic_graph.sot.torque_control.joint_torque_controller import JointTorque
 from dynamic_graph.sot.torque_control.joint_trajectory_generator import JointTrajectoryGenerator
 from dynamic_graph.sot.torque_control.control_manager import ControlManager
 from dynamic_graph.sot.torque_control.inverse_dynamics_controller import InverseDynamicsController
+from dynamic_graph.sot.torque_control.inverse_dynamics_balance_controller import InverseDynamicsBalanceController
 from dynamic_graph.sot.torque_control.admittance_controller import AdmittanceController
 from dynamic_graph.sot.torque_control.position_controller import PositionController
 from dynamic_graph.tracer_real_time import TracerRealTime
@@ -122,6 +123,55 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.polySignDq.value          = NJ*(3,); 
     torque_ctrl.init(dt);
     return torque_ctrl;
+   
+def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, urdfFileName, dt=0.001):
+    ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
+
+    from dynamic_graph.sot.core import Selec_of_vector, Stack_of_vector
+    joint_pos = Selec_of_vector('s1');
+    joint_pos.selec(6, 36);
+    plug(device.robotState, joint_pos.sin);
+    base6d_encoders = Stack_of_vector('stack');
+    plug(floatingBase.soutPos, base6d_encoders.sin1);
+    plug(joint_pos.sin,        base6d_encoders.sin2);
+    plug(base6d_encoders.sout,                 ctrl.q);
+
+    ctrl.v.value = 36*(0.0,);
+#    plug(estimator.jointsVelocities,        ctrl.v);
+    plug(traj_gen.q,                        ctrl.posture_ref_pos);
+    plug(traj_gen.dq,                       ctrl.posture_ref_vel);
+    plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
+#    plug(estimator.contactWrenchRightSole,  ctrl.wrench_right_foot);
+#    plug(estimator.contactWrenchLeftSole,   ctrl.wrench_left_foot);
+    plug(ctrl.tau_des,                      torque_ctrl.jointsTorquesDesired);
+    plug(ctrl.tau_des,                      estimator.tauDes);
+
+    import test_balance_ctrl_sim_conf as conf
+    ctrl.com_ref_pos.value = conf.COM_DES;
+    ctrl.com_ref_vel.value = 3*(0.0,);
+    ctrl.com_ref_acc.value = 3*(0.0,);
+
+    ctrl.contact_normal.value = (0.0, 0.0, 1.0);
+    ctrl.contact_points.value = conf.RIGHT_FOOT_CONTACT_POINTS;
+    ctrl.f_min.value = conf.fMin;
+    ctrl.mu.value = conf.mu[0];
+    ctrl.weight_contact_forces.value = (1e2, 1e2, 1e0, 1e3, 1e3, 1e3);
+    ctrl.kp_com.value = 3*(conf.kp_com,);
+    ctrl.kd_com.value = 3*(conf.kd_com,);
+    ctrl.kp_constraints.value = 6*(conf.kp_constr,);
+    ctrl.kd_constraints.value = 6*(conf.kd_constr,);
+    ctrl.kp_posture.value = 30*(conf.kp_posture,);
+    ctrl.kd_posture.value = 30*(conf.kd_posture,);
+
+    ctrl.w_com.value = conf.w_com;
+    ctrl.w_forces.value = conf.w_forces;
+    ctrl.w_posture.value = conf.w_posture;
+    ctrl.w_base_orientation.value = conf.w_base_orientation;
+    ctrl.w_torques.value = conf.w_torques;
+    
+    ctrl.init(dt, urdfFileName);
+    
+    return ctrl;
     
 def create_inverse_dynamics(device, estimator, torque_ctrl, traj_gen, dt=0.001):
     inv_dyn_ctrl = InverseDynamicsController("inv_dyn");
