@@ -86,6 +86,7 @@ SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/force-torque-estimator.hh
   include/sot/torque_control/motor-model.hh
   include/sot/torque_control/joint-trajectory-generator.hh
+  #include/sot/torque_control/nd-trajectory-generator.hh
   include/sot/torque_control/free-flyer-locator.hh
   include/sot/torque_control/inverse-dynamics-controller.hh
   include/sot/torque_control/inverse-dynamics-balance-controller.hh
@@ -160,6 +161,7 @@ INSTALL(FILES python/test_estimator.py
               python/hrp2_motors_parameters.py
               python/hrp2_joint_pos_ctrl_gains.py
               python/identification_utils.py
+              python/test_balance_ctrl_sim_conf.py
          DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/torque_control/)
 
 ADD_SUBDIRECTORY(src)
