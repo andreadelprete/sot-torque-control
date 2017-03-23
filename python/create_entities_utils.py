@@ -33,7 +33,7 @@ def create_flex_estimator(robot, dt=0.001):
     flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot, useMocap=False, dt=dt);
     flex_est.setOn(False)
     flex_est.interface.setExternalContactPresence(False)
-    #flex_est.enabledContacts_lf_rf_lh_rh.value=(1,1,0,0)
+#    flex_est.enabledContacts_lf_rf_lh_rh.value=(1,1,0,0)
     flex_est.leftFootVelocity.sin2.value = 36*(0.0,)
     flex_est.rightFootVelocity.sin2.value = 36*(0.0,)
     flex_est.inputVel.sin2.value = 36*(0.0,)
@@ -145,12 +145,12 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     plug(ctrl.tau_des,                      torque_ctrl.jointsTorquesDesired);
     plug(ctrl.tau_des,                      estimator.tauDes);
 
-    import test_balance_ctrl_sim_conf as conf
+    import balance_ctrl_conf as conf
     ctrl.com_ref_pos.value = conf.COM_DES;
     ctrl.com_ref_vel.value = 3*(0.0,);
     ctrl.com_ref_acc.value = 3*(0.0,);
 
-    ctrl.inertia_rotors.value = conf.INERTIA_ROTORS;
+    ctrl.rotor_inertias.value = conf.ROTOR_INERTIAS;
     ctrl.gear_ratios.value = conf.GEAR_RATIOS;
     ctrl.contact_normal.value = (0.0, 0.0, 1.0);
     ctrl.contact_points.value = conf.RIGHT_FOOT_CONTACT_POINTS;
