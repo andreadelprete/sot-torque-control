@@ -63,6 +63,8 @@ namespace dynamicgraph
                            << m_kd_comSIN \
                            << m_kp_postureSIN \
                            << m_kd_postureSIN \
+                           << m_kp_posSIN \
+                           << m_kd_posSIN \
                            << m_w_comSIN \
                            << m_w_postureSIN \
                            << m_w_base_orientationSIN \
@@ -127,6 +129,8 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(kd_com,                      ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(kp_posture,                  ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(kd_posture,                  ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kp_pos,                      ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(kd_pos,                      ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(w_com,                       double)
             ,CONSTRUCT_SIGNAL_IN(w_posture,                   double)
             ,CONSTRUCT_SIGNAL_IN(w_base_orientation,          double)
@@ -324,13 +328,37 @@ namespace dynamicgraph
 
         m_active_joints_checkedSINNER(iter);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(q_sot, m_qSIN(iter));
+        assert(q_sot.size()==N_JOINTS+6);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(v_sot, m_vSIN(iter));
+        assert(v_sot.size()==N_JOINTS+6);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(x_com_ref,   m_com_ref_posSIN(iter));
+        assert(x_com_ref.size()==3);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dx_com_ref,  m_com_ref_velSIN(iter));
+        assert(dx_com_ref.size()==3);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(ddx_com_ref, m_com_ref_accSIN(iter));
+        assert(ddx_com_ref.size()==3);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(q_ref,   m_posture_ref_posSIN(iter));
+        assert(q_ref.size()==N_JOINTS);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(dq_ref,  m_posture_ref_velSIN(iter));
+        assert(dq_ref.size()==N_JOINTS);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(ddq_ref, m_posture_ref_accSIN(iter));
+        assert(ddq_ref.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_contact, m_kp_constraintsSIN(iter));
+        assert(kp_contact.size()==6);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_contact, m_kd_constraintsSIN(iter));
+        assert(kd_contact.size()==6);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_com, m_kp_comSIN(iter));
+        assert(kp_com.size()==3);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_com, m_kd_comSIN(iter));
+        assert(kd_com.size()==3);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_posture, m_kp_postureSIN(iter));
+        assert(kp_posture.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_posture, m_kd_postureSIN(iter));
+        assert(kd_posture.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kp_pos, m_kp_posSIN(iter));
+        assert(kp_pos.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_pos, m_kd_posSIN(iter));
+        assert(kd_pos.size()==N_JOINTS);
 
         config_sot_to_urdf(q_sot, m_q_urdf);
         velocity_sot_to_urdf(v_sot, m_v_urdf);
@@ -344,6 +372,15 @@ namespace dynamicgraph
 
         m_taskCom->setReference(m_sampleCom);
         m_taskPosture->setReference(m_samplePosture);
+
+        m_taskCom->Kp(kp_com);
+        m_taskCom->Kd(kd_com);
+        m_taskPosture->Kp(kp_posture);
+        m_taskPosture->Kd(kd_posture);
+        m_contactLF->Kp(kp_contact);
+        m_contactLF->Kd(kd_contact);
+        m_contactRF->Kp(kp_contact);
+        m_contactRF->Kd(kd_contact);
 
         if(m_firstTime)
         {
@@ -380,6 +417,9 @@ namespace dynamicgraph
         velocity_urdf_to_sot(sol.x.head(m_robot->nv()), m_dv_sot);
         m_f = sol.x.tail(24);
         joints_urdf_to_sot(m_invDyn->computeActuatorForces(sol), m_tau_sot);
+
+        m_tau_sot += kp_pos.cwiseProduct(q_ref-q_sot.tail<N_JOINTS>()) +
+                     kd_pos.cwiseProduct(dq_ref-v_sot.tail<N_JOINTS>());
 
         getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
         m_t += m_dt;

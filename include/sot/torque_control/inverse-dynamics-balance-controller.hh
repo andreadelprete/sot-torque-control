@@ -96,6 +96,8 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(kd_com,                     ml::Vector);
         DECLARE_SIGNAL_IN(kp_posture,                 ml::Vector);
         DECLARE_SIGNAL_IN(kd_posture,                 ml::Vector);
+        DECLARE_SIGNAL_IN(kp_pos,                     ml::Vector);
+        DECLARE_SIGNAL_IN(kd_pos,                     ml::Vector);
         DECLARE_SIGNAL_IN(w_com,                      double);
         DECLARE_SIGNAL_IN(w_posture,                  double);
         DECLARE_SIGNAL_IN(w_base_orientation,         double);
