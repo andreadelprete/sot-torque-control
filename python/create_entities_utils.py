@@ -161,6 +161,8 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     ctrl.kd_constraints.value = 6*(conf.kd_constr,);
     ctrl.kp_posture.value = 30*(conf.kp_posture,);
     ctrl.kd_posture.value = 30*(conf.kd_posture,);
+    ctrl.kp_pos.value = 30*(conf.kp_pos,);
+    ctrl.kd_pos.value = 30*(conf.kd_pos,);
 
     ctrl.w_com.value = conf.w_com;
     ctrl.w_forces.value = conf.w_forces;

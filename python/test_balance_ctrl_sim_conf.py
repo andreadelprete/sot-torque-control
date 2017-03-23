@@ -57,14 +57,14 @@ USE_JOINT_VELOCITY_ESTIMATOR    = False;
 ACCOUNT_FOR_ROTOR_INERTIAS      = True;
 
 # CONTROLLER GAINS
-kp_posture  = 30; #1.0;   # proportional gain of postural task
+kp_posture  = 1.0;   # proportional gain of postural task
 kd_posture  = 2*sqrt(kp_posture);
-kp_constr   = 100.0;   # constraint proportional feedback gain
+kp_pos      = 100.0;   # proportional gain of position controller
+kd_pos      = 2*sqrt(kp_pos);
+kp_constr   = 1.0;   # constraint proportional feedback gain
 kd_constr   = 2*sqrt(kp_constr);   # constraint derivative feedback gain
-kp_com      = 10.0;
+kp_com      = 1.0;
 kd_com      = 2*sqrt(kp_com);
-kp_ee       = 100.0;
-kd_ee       = 2*sqrt(kp_ee);
 constraint_mask = np.array([True, True, True, True, True, True]).T;
 ee_mask         = np.array([True, True, True, True, True, True]).T;
 
@@ -83,6 +83,8 @@ verb=0;             # verbosity level (0, 1, or 2)
 # CONTACT PARAMETERS
 RIGHT_FOOT_SIZES  = (0.130,  -0.100,  0.056,  -0.075); # pos x, neg x, pos y, neg y size 
 LEFT_FOOT_SIZES = (0.130, -0.100,  0.075, -0.056); # pos x, neg x, pos y, neg y size 
+
+RIGHT_FOOT_SIZES  = (0.130,  -0.100,  0.056,  -0.056); # pos x, neg x, pos y, neg y size 
 RIGHT_FOOT_CONTACT_POINTS  = ((RIGHT_FOOT_SIZES[0], RIGHT_FOOT_SIZES[0], RIGHT_FOOT_SIZES[1], RIGHT_FOOT_SIZES[1]),
                               (RIGHT_FOOT_SIZES[3], RIGHT_FOOT_SIZES[2], RIGHT_FOOT_SIZES[3], RIGHT_FOOT_SIZES[2]),
                               (-0.105, -0.105, -0.105, -0.105));    # contact points in local reference frame
