@@ -88,6 +88,7 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(base_orientation_ref_pos,   ml::Vector);
         DECLARE_SIGNAL_IN(base_orientation_ref_vel,   ml::Vector);
         DECLARE_SIGNAL_IN(base_orientation_ref_acc,   ml::Vector);
+
         DECLARE_SIGNAL_IN(kp_base_orientation,        ml::Vector);
         DECLARE_SIGNAL_IN(kd_base_orientation,        ml::Vector);
         DECLARE_SIGNAL_IN(kp_constraints,             ml::Vector);
@@ -98,34 +99,44 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_IN(kd_posture,                 ml::Vector);
         DECLARE_SIGNAL_IN(kp_pos,                     ml::Vector);
         DECLARE_SIGNAL_IN(kd_pos,                     ml::Vector);
+
         DECLARE_SIGNAL_IN(w_com,                      double);
         DECLARE_SIGNAL_IN(w_posture,                  double);
         DECLARE_SIGNAL_IN(w_base_orientation,         double);
         DECLARE_SIGNAL_IN(w_torques,                  double);
         DECLARE_SIGNAL_IN(w_forces,                   double);
         DECLARE_SIGNAL_IN(weight_contact_forces,      ml::Vector);
+
         DECLARE_SIGNAL_IN(mu,                         double);
         DECLARE_SIGNAL_IN(contact_points,             ml::Matrix);
         DECLARE_SIGNAL_IN(contact_normal,             ml::Vector);
         DECLARE_SIGNAL_IN(f_min,                      double);
+
+        DECLARE_SIGNAL_IN(rotor_inertias,             ml::Vector);
+        DECLARE_SIGNAL_IN(gear_ratios,                ml::Vector);
         DECLARE_SIGNAL_IN(tau_max,                    ml::Vector);
         DECLARE_SIGNAL_IN(q_min,                      ml::Vector);
         DECLARE_SIGNAL_IN(q_max,                      ml::Vector);
         DECLARE_SIGNAL_IN(dq_max,                     ml::Vector);
         DECLARE_SIGNAL_IN(ddq_max,                    ml::Vector);
         DECLARE_SIGNAL_IN(dt_joint_pos_limits,        double    );
+
         DECLARE_SIGNAL_IN(tau_estimated,              ml::Vector);
         DECLARE_SIGNAL_IN(q,                          ml::Vector);
         DECLARE_SIGNAL_IN(v,                          ml::Vector);
         DECLARE_SIGNAL_IN(wrench_base,                ml::Vector);
         DECLARE_SIGNAL_IN(wrench_left_foot,           ml::Vector);
         DECLARE_SIGNAL_IN(wrench_right_foot,          ml::Vector);
+
         DECLARE_SIGNAL_IN(active_joints,              ml::Vector); /// mask with 1 for controlled joints, 0 otherwise
         
         DECLARE_SIGNAL_OUT(tau_des,                   ml::Vector);
         DECLARE_SIGNAL_OUT(dv_des,                    ml::Vector);
         DECLARE_SIGNAL_OUT(f_des_right_foot,          ml::Vector);
         DECLARE_SIGNAL_OUT(f_des_left_foot,           ml::Vector);
+        DECLARE_SIGNAL_OUT(zmp_des_right_foot,        ml::Vector);
+        DECLARE_SIGNAL_OUT(zmp_des_left_foot,         ml::Vector);
+        DECLARE_SIGNAL_OUT(zmp_des,                   ml::Vector);
         DECLARE_SIGNAL_OUT(com,                       ml::Vector);
         DECLARE_SIGNAL_OUT(base_orientation,          ml::Vector);
         DECLARE_SIGNAL_OUT(right_foot_pos,            ml::Vector);
@@ -166,13 +177,16 @@ namespace dynamicgraph {
         pininvdyn::trajectories::TrajectorySample       m_sampleCom;
         pininvdyn::trajectories::TrajectorySample       m_samplePosture;
 
-        pininvdyn::math::Vector m_dv_sot;
-        pininvdyn::math::Vector m_f;        /// force coefficients (24d)
-        pininvdyn::math::Vector m_f_RF;     /// 6d wrench right foot
-        pininvdyn::math::Vector m_f_LF;     /// 6d wrench left foot
-        pininvdyn::math::Vector m_tau_sot;
-        pininvdyn::math::Vector m_q_urdf;
-        pininvdyn::math::Vector m_v_urdf;
+        pininvdyn::math::Vector  m_dv_sot;
+        pininvdyn::math::Vector  m_f;         /// force coefficients (24d)
+        pininvdyn::math::Vector6 m_f_RF;      /// 6d wrench right foot
+        pininvdyn::math::Vector6 m_f_LF;      /// 6d wrench left foot
+        pininvdyn::math::Vector3 m_zmp_LF;    /// 3d zmp left foot
+        pininvdyn::math::Vector3 m_zmp_RF;    /// 3d zmp left foot
+        pininvdyn::math::Vector3 m_zmp;       /// 3d global zmp
+        pininvdyn::math::Vector  m_tau_sot;
+        pininvdyn::math::Vector  m_q_urdf;
+        pininvdyn::math::Vector  m_v_urdf;
         
       }; // class InverseDynamicsBalanceController
     }    // namespace torque_control

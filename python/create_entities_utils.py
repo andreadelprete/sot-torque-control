@@ -150,6 +150,8 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     ctrl.com_ref_vel.value = 3*(0.0,);
     ctrl.com_ref_acc.value = 3*(0.0,);
 
+    ctrl.inertia_rotors.value = conf.INERTIA_ROTORS;
+    ctrl.gear_ratios.value = conf.GEAR_RATIOS;
     ctrl.contact_normal.value = (0.0, 0.0, 1.0);
     ctrl.contact_points.value = conf.RIGHT_FOOT_CONTACT_POINTS;
     ctrl.f_min.value = conf.fMin;
@@ -254,6 +256,10 @@ def create_admittance_ctrl(device, estimator, ctrl_manager, traj_gen, dt=0.001):
     
     admit_ctrl.init(dt);
     return admit_ctrl;
+
+def create_topic(ros_import, signal, name, data_type='vector'):
+    ros_import.add(data_type, name+'_ros', name);
+    plug(signal, ros_import.signal(name+'_ros'));
 
 def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=None, ctrl_manager=None, inv_dyn=None, adm_ctrl=None, ff_locator=None, floatingBase=None):
     from dynamic_graph.ros import RosImport

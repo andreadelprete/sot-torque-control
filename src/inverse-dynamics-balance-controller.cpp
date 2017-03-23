@@ -75,6 +75,8 @@ namespace dynamicgraph
                            << m_contact_pointsSIN \
                            << m_contact_normalSIN \
                            << m_f_minSIN \
+                           << m_rotor_inertiasSIN \
+                           << m_gear_ratiosSIN \
                            << m_tau_maxSIN \
                            << m_q_minSIN \
                            << m_q_maxSIN \
@@ -92,6 +94,9 @@ namespace dynamicgraph
 #define OUTPUT_SIGNALS        m_tau_desSOUT \
                            << m_f_des_right_footSOUT \
                            << m_f_des_left_footSOUT \
+                           << m_zmp_des_right_footSOUT \
+                           << m_zmp_des_left_footSOUT \
+                           << m_zmp_desSOUT \
                            << m_comSOUT \
                            << m_base_orientationSOUT \
                            << m_right_foot_posSOUT \
@@ -141,6 +146,8 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_IN(contact_points,              ml::Matrix)
             ,CONSTRUCT_SIGNAL_IN(contact_normal,              ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(f_min,                       double)
+            ,CONSTRUCT_SIGNAL_IN(rotor_inertias,              ml::Vector)
+            ,CONSTRUCT_SIGNAL_IN(gear_ratios,                 ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(tau_max,                     ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(q_min,                       ml::Vector)
             ,CONSTRUCT_SIGNAL_IN(q_max,                       ml::Vector)
@@ -157,11 +164,15 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_OUT(tau_des,                    ml::Vector, INPUT_SIGNALS)
             ,CONSTRUCT_SIGNAL_OUT(f_des_right_foot,           ml::Vector, m_tau_desSOUT)
             ,CONSTRUCT_SIGNAL_OUT(f_des_left_foot,            ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(zmp_des_right_foot,         ml::Vector, m_f_des_right_footSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(zmp_des_left_foot,          ml::Vector, m_f_des_left_footSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(zmp_des,                    ml::Vector, m_zmp_des_left_footSOUT<<
+                                                                          m_zmp_des_right_footSOUT)
             ,CONSTRUCT_SIGNAL_OUT(dv_des,                     ml::Vector, m_tau_desSOUT)
-            ,CONSTRUCT_SIGNAL_OUT(com,                        ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(base_orientation,           ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(left_foot_pos,              ml::Vector, INPUT_SIGNALS)
-            ,CONSTRUCT_SIGNAL_OUT(right_foot_pos,             ml::Vector, INPUT_SIGNALS)
+            ,CONSTRUCT_SIGNAL_OUT(com,                        ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(base_orientation,           ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(left_foot_pos,              ml::Vector, m_tau_desSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(right_foot_pos,             ml::Vector, m_tau_desSOUT)
             ,CONSTRUCT_SIGNAL_INNER(active_joints_checked,    ml::Vector, m_active_jointsSIN)
             ,m_initSucceeded(false)
             ,m_enabled(false)
@@ -169,6 +180,10 @@ namespace dynamicgraph
             ,m_firstTime(true)
       {
         Entity::signalRegistration( INPUT_SIGNALS << OUTPUT_SIGNALS );
+
+        m_zmp_RF.setZero();
+        m_zmp_LF.setZero();
+        m_zmp.setZero();
 
         /* Commands. */
         addCommand("init",
@@ -183,10 +198,6 @@ namespace dynamicgraph
         if(dt<=0.0)
           return SEND_MSG("Init failed: Timestep must be positive", MSG_TYPE_ERROR);
 
-//        EIGEN_CONST_VECTOR_FROM_SIGNAL(q, m_qSIN(0));
-//        assert(q.size()==N_JOINTS+6);
-//        EIGEN_CONST_VECTOR_FROM_SIGNAL(v, m_vSIN(0));
-//        assert(v.size()==N_JOINTS+6);
         EIGEN_CONST_MATRIX_FROM_SIGNAL(contactPoints, m_contact_pointsSIN(0));
         assert(contactPoints.rows()==3 && contactPoints.cols()==4);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(contactNormal, m_contact_normalSIN(0));
@@ -204,6 +215,10 @@ namespace dynamicgraph
         assert(kp_posture.size()==N_JOINTS);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_posture, m_kd_postureSIN(0));
         assert(kd_posture.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(rotor_inertias, m_rotor_inertiasSIN(0));
+        assert(rotor_inertias.size()==N_JOINTS);
+        EIGEN_CONST_VECTOR_FROM_SIGNAL(gear_ratios, m_gear_ratiosSIN(0));
+        assert(gear_ratios.size()==N_JOINTS);
 
         const double & w_com = m_w_comSIN(0);
         const double & w_posture = m_w_postureSIN(0);
@@ -215,9 +230,10 @@ namespace dynamicgraph
 
         try 
         {
-//          se3::urdf::buildModel(urdfFile,se3::JointModelFreeFlyer(),m_model);
           vector<string> package_dirs;
           m_robot = new RobotWrapper(urdfFile, package_dirs, se3::JointModelFreeFlyer());
+          m_robot->rotor_inertias(rotor_inertias);
+          m_robot->gear_ratios(gear_ratios);
 
           assert(m_robot->nv()-6==N_JOINTS);
           m_dv_sot.setZero(m_robot->nv());
@@ -227,7 +243,6 @@ namespace dynamicgraph
           m_v_urdf.setZero(m_robot->nv());
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
           m_invDyn = new InverseDynamicsFormulationAccForce("invdyn", *m_robot);
-//          m_invDyn->computeProblemData(m_t, q, v);
 
           m_contactRF = new Contact6d("contact_rfoot", *m_robot, RIGHT_FOOT_FRAME_NAME,
                                       contactPoints, contactNormal,
@@ -446,7 +461,7 @@ namespace dynamicgraph
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des_right_foot before initialization!");
           return s;
         }
         if(s.size()!=6)
@@ -462,7 +477,7 @@ namespace dynamicgraph
       {
         if(!m_initSucceeded)
         {
-          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des before initialization!");
+          SEND_WARNING_STREAM_MSG("Cannot compute signal f_des_left_foot before initialization!");
           return s;
         }
         if(s.size()!=6)
@@ -471,6 +486,76 @@ namespace dynamicgraph
         const Eigen::MatrixXd & T = m_contactLF->getForceGeneratorMatrix();
         m_f_LF = T*m_f.tail<12>();
         EIGEN_VECTOR_TO_VECTOR(m_f_LF, s);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(zmp_des_right_foot,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal zmp_des_right_foot before initialization!");
+          return s;
+        }
+        if(s.size()!=2)
+          s.resize(2);
+        m_f_des_right_footSOUT(iter);
+        se3::SE3 H_rf = m_robot->position(m_invDyn->data(),
+                                          m_robot->model().getJointId(RIGHT_FOOT_FRAME_NAME));
+        if(fabs(m_f_RF(2)>1.0))
+        {
+          m_zmp_RF(0) = -m_f_RF(4) / m_f_RF(2);
+          m_zmp_RF(1) =  m_f_RF(3) / m_f_RF(2);
+        }
+        else
+          m_zmp_RF.setZero();
+
+        m_zmp_RF = H_rf.act(m_zmp_RF);
+        s(0) = m_zmp_RF(0);
+        s(1) = m_zmp_RF(1);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(zmp_des_left_foot,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal zmp_des_left_foot before initialization!");
+          return s;
+        }
+        if(s.size()!=2)
+          s.resize(2);
+        m_f_des_left_footSOUT(iter);
+        se3::SE3 H_lf = m_robot->position(m_invDyn->data(),
+                                          m_robot->model().getJointId(LEFT_FOOT_FRAME_NAME));
+        if(fabs(m_f_LF(2)>1.0))
+        {
+          m_zmp_LF(0) = -m_f_LF(4) / m_f_LF(2);
+          m_zmp_LF(1) =  m_f_LF(3) / m_f_LF(2);
+        }
+        else
+          m_zmp_LF.setZero();
+
+        m_zmp_LF = H_lf.act(m_zmp_LF);
+        s(0) = m_zmp_LF(0);
+        s(1) = m_zmp_LF(1);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(zmp_des, ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal zmp_des before initialization!");
+          return s;
+        }
+        if(s.size()!=2)
+          s.resize(2);
+        m_zmp_des_left_footSOUT(iter);
+        m_zmp_des_right_footSOUT(iter);
+
+        m_zmp = (m_f_RF(2)*m_zmp_RF + m_f_LF(2)*m_zmp_LF) / (m_f_LF(2)+m_f_RF(2));
+        s(0) = m_zmp(0);
+        s(1) = m_zmp(1);
         return s;
       }
       
@@ -485,8 +570,7 @@ namespace dynamicgraph
         if(s.size()!=3)
           s.resize(3);
         const Vector3 & com = m_robot->com(m_invDyn->data());
-        for(int i=0; i<3; i++)
-          s(i)=com(i);
+        EIGEN_VECTOR_TO_VECTOR(com, s);
         return s;
       }
       
@@ -553,7 +637,7 @@ namespace dynamicgraph
       {
         if( cmdLine == "help" )
         {
-          os << "sotInverseDynamicsBalanceController:\n"
+          os << "InverseDynamicsBalanceController:\n"
               << "\t -." << std::endl;
           Entity::commandLine(cmdLine, cmdArgs, os);
         }
