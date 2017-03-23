@@ -127,13 +127,12 @@ def create_torque_controller(device, estimator, dt=0.001):
 def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, urdfFileName, dt=0.001):
     ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
 
-    from dynamic_graph.sot.core import Selec_of_vector, Stack_of_vector
-    joint_pos = Selec_of_vector('s1');
-    joint_pos.selec(6, 36);
-    plug(device.robotState, joint_pos.sin);
-    base6d_encoders = Stack_of_vector('stack');
+    from dynamic_graph.sot.core import Stack_of_vector
+    base6d_encoders = Stack_of_vector('base6d_encoders');
     plug(floatingBase.soutPos, base6d_encoders.sin1);
-    plug(joint_pos.sin,        base6d_encoders.sin2);
+    base6d_encoders.selec1(0,6);
+    plug(device.robotState,    base6d_encoders.sin2);
+    base6d_encoders.selec2(6,36);
     plug(base6d_encoders.sout,                 ctrl.q);
 
     ctrl.v.value = 36*(0.0,);
