@@ -315,22 +315,22 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(estimator.dynamicsError,                      ros.estimator_dynamicsError_ros);
         robot.device.after.addSignal('estimator.contactWrenchRightFoot')
     if(torque_ctrl!=None):
-        ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
-        ros.add('vector', 'torque_ctrl_predictedPwm_tau_ros',       'torque_ctrl_predictedPwm_tau');
-        ros.add('vector', 'torque_ctrl_pwm_ff_ros',                 'torque_ctrl_pwm_ff');
-        ros.add('vector', 'torque_ctrl_pwm_fb_ros',                 'torque_ctrl_pwm_fb');
-        ros.add('vector', 'torque_ctrl_pwm_friction_ros',           'torque_ctrl_pwm_friction');
-        ros.add('vector', 'torque_ctrl_smoothSignDq_ros',           'torque_ctrl_smoothSignDq');
-        ros.add('vector', 'torque_ctrl_predictedJointsTorques_ros', 'torque_ctrl_predictedJointsTorques');
+#        ros.add('vector', 'torque_ctrl_predictedPwm_ros',           'torque_ctrl_predictedPwm');
+#        ros.add('vector', 'torque_ctrl_predictedPwm_tau_ros',       'torque_ctrl_predictedPwm_tau');
+#        ros.add('vector', 'torque_ctrl_pwm_ff_ros',                 'torque_ctrl_pwm_ff');
+#        ros.add('vector', 'torque_ctrl_pwm_fb_ros',                 'torque_ctrl_pwm_fb');
+#        ros.add('vector', 'torque_ctrl_pwm_friction_ros',           'torque_ctrl_pwm_friction');
+#        ros.add('vector', 'torque_ctrl_smoothSignDq_ros',           'torque_ctrl_smoothSignDq');
+#        ros.add('vector', 'torque_ctrl_predictedJointsTorques_ros', 'torque_ctrl_predictedJointsTorques');
         ros.add('vector', 'torque_ctrl_controlCurrent_ros',         'torque_ctrl_controlCurrent');
         ros.add('vector', 'torque_ctrl_desiredCurrent_ros',         'torque_ctrl_desiredCurrent');
-        plug(torque_ctrl.predictedPwm,            ros.torque_ctrl_predictedPwm_ros);
-        plug(torque_ctrl.predictedPwm_tau,        ros.torque_ctrl_predictedPwm_tau_ros);
-        plug(torque_ctrl.pwm_ff,                  ros.torque_ctrl_pwm_ff_ros);
-        plug(torque_ctrl.pwm_fb,                  ros.torque_ctrl_pwm_fb_ros);
-        plug(torque_ctrl.pwm_friction,            ros.torque_ctrl_pwm_friction_ros);
-        plug(torque_ctrl.smoothSignDq,            ros.torque_ctrl_smoothSignDq_ros);
-        plug(torque_ctrl.predictedJointsTorques,  ros.torque_ctrl_predictedJointsTorques_ros);
+#        plug(torque_ctrl.predictedPwm,            ros.torque_ctrl_predictedPwm_ros);
+#        plug(torque_ctrl.predictedPwm_tau,        ros.torque_ctrl_predictedPwm_tau_ros);
+#        plug(torque_ctrl.pwm_ff,                  ros.torque_ctrl_pwm_ff_ros);
+#        plug(torque_ctrl.pwm_fb,                  ros.torque_ctrl_pwm_fb_ros);
+#        plug(torque_ctrl.pwm_friction,            ros.torque_ctrl_pwm_friction_ros);
+#        plug(torque_ctrl.smoothSignDq,            ros.torque_ctrl_smoothSignDq_ros);
+#        plug(torque_ctrl.predictedJointsTorques,  ros.torque_ctrl_predictedJointsTorques_ros);
         plug(torque_ctrl.controlCurrent,          ros.torque_ctrl_controlCurrent_ros);
         plug(torque_ctrl.desiredCurrent,          ros.torque_ctrl_desiredCurrent_ros);
 
@@ -353,16 +353,18 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(ctrl_manager.signOfControlFiltered,    ros.ctrl_manager_signOfControlFiltered_ros);
         plug(ctrl_manager.signOfControl,            ros.ctrl_manager_signOfControl_ros);
     if(inv_dyn!=None):
-        ros.add('vector', 'inv_dyn_tauDes_ros',    'inv_dyn_tauDes');
-        ros.add('vector', 'inv_dyn_tauFF_ros',     'inv_dyn_tauFF');
-        ros.add('vector', 'inv_dyn_tauFB_ros',     'inv_dyn_tauFB');
-        ros.add('vector', 'inv_dyn_ddqDes_ros',    'inv_dyn_ddqDes');
-        ros.add('vector', 'inv_dyn_qError_ros',    'inv_dyn_qError');
-        plug(inv_dyn.tauDes,    ros.inv_dyn_tauDes_ros);
-        plug(inv_dyn.tauFF,     ros.inv_dyn_tauFF_ros);
-        plug(inv_dyn.tauFB,     ros.inv_dyn_tauFB_ros);
-        plug(inv_dyn.ddqDes,    ros.inv_dyn_ddqDes_ros);
-        plug(inv_dyn.qError,    ros.inv_dyn_qError_ros);
+#          ros.add('vector', 'inv_dyn_tauDes_ros',    'inv_dyn_tauDes');
+#          ros.add('vector', 'inv_dyn_tauFF_ros',     'inv_dyn_tauFF');
+#          ros.add('vector', 'inv_dyn_tauFB_ros',     'inv_dyn_tauFB');
+#          ros.add('vector', 'inv_dyn_ddqDes_ros',    'inv_dyn_ddqDes');
+#          ros.add('vector', 'inv_dyn_qError_ros',    'inv_dyn_qError');
+#          plug(inv_dyn.tauDes,    ros.inv_dyn_tauDes_ros);
+#          plug(inv_dyn.tauFF,     ros.inv_dyn_tauFF_ros);
+#          plug(inv_dyn.tauFB,     ros.inv_dyn_tauFB_ros);
+#          plug(inv_dyn.ddqDes,    ros.inv_dyn_ddqDes_ros);
+#          plug(inv_dyn.qError,    ros.inv_dyn_qError_ros);
+          ros.add('vector', 'inv_dyn_tauDes_ros',    'inv_dyn_tauDes');
+          plug(inv_dyn.tau_des,    ros.inv_dyn_tauDes_ros);
     if(adm_ctrl!=None):
         ros.add('vector', 'adm_ctrl_qDes_ros',              'adm_ctrl_qDes');
         ros.add('vector', 'adm_ctrl_dqDes_ros',             'adm_ctrl_dqDes');
@@ -371,7 +373,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
         plug(adm_ctrl.dqDes,            ros.adm_ctrl_dqDes_ros);
         plug(adm_ctrl.fRightFootError,  ros.adm_ctrl_fRightFootError_ros);
     if(ff_locator!=None):
-        plug(ffLocator.base6dFromFoot_encoders,    ros.robotState_ros);
+        plug(ff_locator.base6dFromFoot_encoders,    ros.robotState_ros);
     if(floatingBase!=None):
         ros.add('vector', 'floatingBase_pos_ros', 'floatingBase_pos');
         plug(floatingBase.soutPos, ros.floatingBase_pos_ros);
