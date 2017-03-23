@@ -50,7 +50,7 @@ def create_device(q=None):
     device.increment(0.001);
     return device;
     
-def main(dt=0.001, delay=0.01):
+def main_new(dt=0.001, delay=0.01):
     np.set_printoptions(precision=2, suppress=True);
     COM_DES_1 = (0.012, 0.1, 0.81);
     COM_DES_2 = (0.012, -0.1, 0.81);
@@ -70,51 +70,20 @@ def main(dt=0.001, delay=0.01):
     robot = simulator.r;
     
     device          = create_device(conf.q0_sot);
-#    ff_locator      = create_free_flyer_locator(device, conf.urdfFileName);
+    ff_locator      = create_free_flyer_locator(device, conf.urdfFileName);
+#    flex_est        = create_flex_estimator(robot,dt);
+#    floatingBase    = create_floatingBase(flex_est,ff_locator);
     traj_gen        = create_trajectory_generator(device, dt);
-#    estimator       = create_estimator(device, dt, delay, traj_gen);
-#    torque_ctrl     = create_torque_controller(device, estimator);
-#    pos_ctrl        = create_position_controller(device, estimator, dt, traj_gen);
+    estimator       = create_estimator(device, dt, delay, traj_gen);
+    torque_ctrl     = create_torque_controller(device, estimator);
+    pos_ctrl        = create_position_controller(device, estimator, dt, traj_gen);
     
-    ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
-    plug(device.state,                 ctrl.q);
-    ctrl.v.value = 36*(0.0,);
-#    plug(estimator.jointsVelocities,        ctrl.v);
-    plug(traj_gen.q,                        ctrl.posture_ref_pos);
-    plug(traj_gen.dq,                       ctrl.posture_ref_vel);
-    plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
-#    plug(estimator.contactWrenchRightSole,  ctrl.wrench_right_foot);
-#    plug(estimator.contactWrenchLeftSole,   ctrl.wrench_left_foot);
-#    plug(ctrl.tau_des,                      torque_ctrl.jointsTorquesDesired);
-#    plug(ctrl.tau_des,                      estimator.tauDes);
-
-    ctrl.com_ref_pos.value = to_tuple(robot.com(q0));
-    ctrl.com_ref_pos.value = COM_DES_1;
-    ctrl.com_ref_vel.value = 3*(0.0,);
-    ctrl.com_ref_acc.value = 3*(0.0,);
-
-    ctrl.contact_normal.value = (0.0, 0.0, 1.0);
-    ctrl.contact_points.value = conf.RIGHT_FOOT_CONTACT_POINTS;
-    ctrl.f_min.value = conf.fMin;
-    ctrl.mu.value = conf.mu[0];
-    ctrl.weight_contact_forces.value = (1e2, 1e2, 1e0, 1e3, 1e3, 1e3);
-    ctrl.kp_com.value = 3*(conf.kp_com,);
-    ctrl.kd_com.value = 3*(conf.kd_com,);
-    ctrl.kp_constraints.value = 6*(conf.kp_constr,);
-    ctrl.kd_constraints.value = 6*(conf.kd_constr,);
-    ctrl.kp_posture.value = 30*(conf.kp_posture,);
-    ctrl.kd_posture.value = 30*(conf.kd_posture,);
-
-    ctrl.w_com.value = conf.w_com;
-    ctrl.w_forces.value = conf.w_forces;
-    ctrl.w_posture.value = conf.w_posture;
-    ctrl.w_base_orientation.value = conf.w_base_orientation;
-    ctrl.w_torques.value = conf.w_torques;
-    
+    ctrl = create_balance_controller(device, ff_locator, estimator, torque_ctrl, traj_gen, conf.urdfFileName, dt=0.001);
+    plug(device.state,                 ctrl.q);    
     ctrl.init(dt, conf.urdfFileName);
     ctrl.active_joints.value = conf.active_joints;
     
-#    ctrl_manager    = create_ctrl_manager(device, torque_ctrl, pos_ctrl, ctrl, estimator, dt);
+    ctrl_manager    = create_ctrl_manager(device, torque_ctrl, pos_ctrl, ctrl, estimator, dt);
 #    plug(device.velocity,       torque_ctrl.jointsVelocities);    
     plug(device.velocity,       ctrl.v);
     plug(ctrl.dv_des,           device.control);
@@ -161,10 +130,13 @@ def main(dt=0.001, delay=0.01):
     
     return (simulator, ctrl);
 
-def main_old(task='', dt=0.001, delay=0.01):
+
+def main(dt=0.001, delay=0.01):
     np.set_printoptions(precision=2, suppress=True);
+    COM_DES_1 = (0.012, 0.1, 0.81);
+    COM_DES_2 = (0.012, 0.0, 0.81);
     dt = conf.dt;
-    q0 = conf.q0;
+    q0 = conf.q0_urdf;
     v0 = conf.v0;
     nv = v0.shape[0];
     
@@ -178,18 +150,35 @@ def main_old(task='', dt=0.001, delay=0.01):
     simulator.verb=0;
     robot = simulator.r;
     
+    device          = create_device(conf.q0_sot);
+#    ff_locator      = create_free_flyer_locator(device, conf.urdfFileName);
+#    traj_gen        = create_trajectory_generator(device, dt);
+    traj_gen = JointTrajectoryGenerator("jtg");
+    plug(device.state,             traj_gen.base6d_encoders);
+    traj_gen.init(dt);
+#    estimator       = create_estimator(device, dt, delay, traj_gen);
+#    torque_ctrl     = create_torque_controller(device, estimator);
+#    pos_ctrl        = create_position_controller(device, estimator, dt, traj_gen);
+    
     ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
-    ctrl.q.value = to_tuple(simulator.q);
-    ctrl.v.value = to_tuple(simulator.v);
+    plug(device.state,                 ctrl.q);
+    ctrl.v.value = 36*(0.0,);
+#    plug(estimator.jointsVelocities,        ctrl.v);
+    plug(traj_gen.q,                        ctrl.posture_ref_pos);
+    plug(traj_gen.dq,                       ctrl.posture_ref_vel);
+    plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
+#    plug(estimator.contactWrenchRightSole,  ctrl.wrench_right_foot);
+#    plug(estimator.contactWrenchLeftSole,   ctrl.wrench_left_foot);
+#    plug(ctrl.tau_des,                      torque_ctrl.jointsTorquesDesired);
+#    plug(ctrl.tau_des,                      estimator.tauDes);
 
     ctrl.com_ref_pos.value = to_tuple(robot.com(q0));
-    ctrl.com_ref_pos.value = (0.012, 0.1, 0.81)
+    ctrl.com_ref_pos.value = COM_DES_1;
     ctrl.com_ref_vel.value = 3*(0.0,);
     ctrl.com_ref_acc.value = 3*(0.0,);
-    ctrl.posture_ref_pos.value = to_tuple(q0[7:,0]);
-    ctrl.posture_ref_vel.value = NJ*(0.0,);
-    ctrl.posture_ref_acc.value = NJ*(0.0,);
 
+    ctrl.rotor_inertias.value = conf.ROTOR_INERTIAS;
+    ctrl.gear_ratios.value = conf.GEAR_RATIOS;
     ctrl.contact_normal.value = (0.0, 0.0, 1.0);
     ctrl.contact_points.value = conf.RIGHT_FOOT_CONTACT_POINTS;
     ctrl.f_min.value = conf.fMin;
@@ -201,6 +190,8 @@ def main_old(task='', dt=0.001, delay=0.01):
     ctrl.kd_constraints.value = 6*(conf.kd_constr,);
     ctrl.kp_posture.value = 30*(conf.kp_posture,);
     ctrl.kd_posture.value = 30*(conf.kd_posture,);
+    ctrl.kp_pos.value = 30*(0*conf.kp_pos,);
+    ctrl.kd_pos.value = 30*(0*conf.kd_pos,);
 
     ctrl.w_com.value = conf.w_com;
     ctrl.w_forces.value = conf.w_forces;
@@ -211,22 +202,70 @@ def main_old(task='', dt=0.001, delay=0.01):
     ctrl.init(dt, conf.urdfFileName);
     ctrl.active_joints.value = conf.active_joints;
     
+#    ctrl_manager    = create_ctrl_manager(device, torque_ctrl, pos_ctrl, ctrl, estimator, dt);
+#    plug(device.velocity,       torque_ctrl.jointsVelocities);    
+    plug(device.velocity,       ctrl.v);
+    plug(ctrl.dv_des,           device.control);
     t = 0.0;
+    v = mat_zeros(nv);
     dv = mat_zeros(nv);
+    x_rf = robot.framePosition(robot.model.getFrameId('RLEG_JOINT5')).translation;
+    x_lf = robot.framePosition(robot.model.getFrameId('LLEG_JOINT5')).translation;
+
+    simulator.viewer.addSphere('zmp_rf', 0.01, mat_zeros(3), mat_zeros(3), (0.8, 0.3, 1.0, 1.0), 'OFF');
+    simulator.viewer.addSphere('zmp_lf', 0.01, mat_zeros(3), mat_zeros(3), (0.8, 0.3, 1.0, 1.0), 'OFF');
+    simulator.viewer.addSphere('zmp', 0.01, mat_zeros(3), mat_zeros(3), (0.8, 0.8, 0.3, 1.0), 'OFF');
+
     for i in range(conf.MAX_TEST_DURATION):
-        ctrl.q.value = to_tuple(simulator.q);
-        ctrl.v.value = to_tuple(simulator.v);
-        ctrl.dv_des.recompute(i);
-        dv = np.matrix(ctrl.dv_des.value).T;
-        if(norm(dv[6:24]) > 1e-8):
-            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
+#        if(norm(dv[6:24]) > 1e-8):
+#            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
+        device.increment(dt);
+        
+        if(i==1500):
+            ctrl.com_ref_pos.value = COM_DES_2;
+        if(i%1==0):
+            q = np.matrix(device.state.value).T;
+            q_urdf = config_sot_to_urdf(q);
+            simulator.viewer.updateRobotConfig(q_urdf);
+
+            ctrl.f_des_right_foot.recompute(i);
+            ctrl.f_des_left_foot.recompute(i);
+            f_rf = np.matrix(ctrl.f_des_right_foot.value).T
+            f_lf = np.matrix(ctrl.f_des_left_foot.value).T
+            simulator.updateContactForcesInViewer(['rf', 'lf'], 
+                                                  [x_rf, x_lf], 
+                                                  [f_rf, f_lf]);
+                                                  
+            ctrl.zmp_des_right_foot.recompute(i);
+            ctrl.zmp_des_left_foot.recompute(i);
+            ctrl.zmp_des.recompute(i);
+            zmp_rf = np.matrix(ctrl.zmp_des_right_foot.value).T;
+            zmp_lf = np.matrix(ctrl.zmp_des_left_foot.value).T;
+            zmp = np.matrix(ctrl.zmp_des.value).T; 
+            simulator.viewer.updateObjectConfig('zmp_rf', (zmp_rf[0,0], zmp_rf[1,0], 0., 0.,0.,0.,1.));
+            simulator.viewer.updateObjectConfig('zmp_lf', (zmp_lf[0,0], zmp_lf[1,0], 0., 0.,0.,0.,1.));
+            simulator.viewer.updateObjectConfig('zmp',    (zmp[0,0],    zmp[1,0], 0., 0.,0.,0.,1.));
+
+            ctrl.com.recompute(i);
+            com = np.matrix(ctrl.com.value).T
+            com[2,0] = 0.0;
+            simulator.updateComPositionInViewer(com);
         if(i%100==0):
-            print "t=%.3f dv=%.1f v=%.1f" % (t, norm(dv), norm(simulator.v));
-        simulator.integrateAcc(t, dt, dv, None, None, conf.PLAY_MOTION_WHILE_COMPUTING);
+            ctrl.com.recompute(i);
+            com = np.matrix(ctrl.com.value).T
+            v = np.matrix(device.velocity.value).T;
+            dv = np.matrix(ctrl.dv_des.value).T;
+            print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T,
+            print "zmp_lf", f_lf[3:5].T/f_lf[2,0],
+            print "zmp_rf", f_rf[3:5].T/f_rf[2,0];
+            
+        if(i==2):
+            ctrl_manager = ControlManager("ctrl_man");
+            ctrl_manager.resetProfiler();
         t += dt;
-#        sleep(0.001);
     
     return (simulator, ctrl);
+
     
 if __name__=='__main__':
     (sim, ctrl) = main();

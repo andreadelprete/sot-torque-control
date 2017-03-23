@@ -17,7 +17,7 @@ q0_urdf = np.matrix([0.0, 0.0, 0.648702, 0.0, 0.0 , 0.0, 1.0,                   
                      0.0, 0.0, -0.453785606, 0.872664626, -0.41887902, 0.0,               # RLEG       31-36
                      ]).T;
 q0_sot = (  # Free flyer
-            0., 0., 0.643702, 0., 0. , 0.,
+            0., 0., 0.648702, 0., 0. , 0.,
             # Legs
             0., 0., -0.453786, 0.872665, -0.418879, 0.,
             0., 0., -0.453786, 0.872665, -0.418879, 0.,
@@ -63,13 +63,13 @@ USE_JOINT_VELOCITY_ESTIMATOR    = False;
 ACCOUNT_FOR_ROTOR_INERTIAS      = True;
 
 # CONTROLLER GAINS
-kp_posture  = 10.0;   # proportional gain of postural task
+kp_posture  = 1.0;   # proportional gain of postural task
 kd_posture  = 2*sqrt(kp_posture);
 kp_pos      = 100.0;   # proportional gain of position controller
 kd_pos      = 2*sqrt(kp_pos);
-kp_constr   = 10.0;   # constraint proportional feedback gain
+kp_constr   = 1.0;   # constraint proportional feedback gain
 kd_constr   = 2*sqrt(kp_constr);   # constraint derivative feedback gain
-kp_com      = 10.0;
+kp_com      = 1.0;
 kd_com      = 2*sqrt(kp_com);
 constraint_mask = np.array([True, True, True, True, True, True]).T;
 ee_mask         = np.array([True, True, True, True, True, True]).T;
