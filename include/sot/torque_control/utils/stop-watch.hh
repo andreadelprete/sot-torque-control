@@ -52,6 +52,8 @@ enum StopwatchMode
                   // much real time passed
 };
 
+#define STOP_WATCH_MAX_NAME_LENGTH 70
+
 /** 
     @brief A class representing a stopwatch.
     
