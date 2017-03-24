@@ -84,9 +84,12 @@ namespace dynamicgraph {
         void resetIntegral();
 
         /* --- SIGNALS --- */
-        DECLARE_SIGNAL_IN(base6d_encoders,  ml::Vector);
-        DECLARE_SIGNAL_OUT(freeflyer_aa,      ml::Vector);  /// freeflyer position with angle axis format
-        DECLARE_SIGNAL_OUT(base6dFromFoot_encoders,  ml::Vector);  /// base6d_encoders with base6d in RPY
+        DECLARE_SIGNAL_IN(base6d_encoders,            ml::Vector);
+        DECLARE_SIGNAL_IN(joint_velocities,           ml::Vector);
+        DECLARE_SIGNAL_INNER(kinematics_computations, ml::Vector);
+        DECLARE_SIGNAL_OUT(freeflyer_aa,              ml::Vector);  /// freeflyer position with angle axis format
+        DECLARE_SIGNAL_OUT(base6dFromFoot_encoders,   ml::Vector);  /// base6d_encoders with base6d in RPY
+        DECLARE_SIGNAL_OUT(v,                         ml::Vector);  /// n+6 robot velocities
 
         /* --- COMMANDS --- */
         /* --- ENTITY INHERITANCE --- */
@@ -105,6 +108,15 @@ namespace dynamicgraph {
         se3::Model        m_model;            /// Pinocchio robot model
         se3::Data         *m_data;            /// Pinocchio robot data 
         se3::SE3          m_Mff;               /// SE3 Transform from center of feet to base
+        se3::SE3          m_w_M_lf;
+        se3::SE3          m_w_M_rf;
+        unsigned int      m_right_foot_id;
+        unsigned int      m_left_foot_id;
+        Eigen::VectorXd   m_q_pin;            /// robot configuration according to pinocchio convention
+        Eigen::VectorXd   m_q_sot;            /// robot configuration according to SoT convention
+        Eigen::VectorXd   m_v_pin;            /// robot velocities according to pinocchio convention
+        Eigen::VectorXd   m_v_sot;            /// robot velocities according to SoT convention
+
       }; // class FreeFlyerLocator
       
     }    // namespace torque_control

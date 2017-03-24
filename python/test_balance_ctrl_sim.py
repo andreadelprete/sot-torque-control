@@ -151,6 +151,18 @@ def main(dt=0.001, delay=0.01):
     robot = simulator.r;
     
     device          = create_device(conf.q0_sot);
+
+    from dynamic_graph.sot.core import Selec_of_vector
+    joint_vel = Selec_of_vector("joint_vel");
+    plug(device.velocity, joint_vel.sin);
+    joint_vel.selec(6, 36);
+
+    from dynamic_graph.sot.torque_control.free_flyer_locator import FreeFlyerLocator
+    ff_locator = FreeFlyerLocator("ffLocator");
+    plug(device.state,      ff_locator.base6d_encoders);
+    plug(joint_vel.sout,    ff_locator.joint_velocities);
+    ff_locator.init(conf.urdfFileName);
+
 #    ff_locator      = create_free_flyer_locator(device, conf.urdfFileName);
 #    traj_gen        = create_trajectory_generator(device, dt);
     traj_gen = JointTrajectoryGenerator("jtg");
@@ -162,8 +174,7 @@ def main(dt=0.001, delay=0.01):
     
     ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
     plug(device.state,                 ctrl.q);
-    ctrl.v.value = 36*(0.0,);
-#    plug(estimator.jointsVelocities,        ctrl.v);
+
     plug(traj_gen.q,                        ctrl.posture_ref_pos);
     plug(traj_gen.dq,                       ctrl.posture_ref_vel);
     plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
@@ -219,11 +230,15 @@ def main(dt=0.001, delay=0.01):
     for i in range(conf.MAX_TEST_DURATION):
 #        if(norm(dv[6:24]) > 1e-8):
 #            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
+        
+        ff_locator.base6dFromFoot_encoders.recompute(i);
+        ff_locator.v.recompute(i);
+
         device.increment(dt);
         
         if(i==1500):
             ctrl.com_ref_pos.value = COM_DES_2;
-        if(i%1==0):
+        if(i%30==0):
             q = np.matrix(device.state.value).T;
             q_urdf = config_sot_to_urdf(q);
             simulator.viewer.updateRobotConfig(q_urdf);
@@ -258,6 +273,14 @@ def main(dt=0.001, delay=0.01):
             print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T,
             print "zmp_lf", f_lf[3:5].T/f_lf[2,0],
             print "zmp_rf", f_rf[3:5].T/f_rf[2,0];
+
+            
+#            print "Base pos (real)", device.state.value[:3];
+#            
+#            print "Base pos (esti)", ff_locator.base6dFromFoot_encoders.value[:3], '\n';
+
+            print "Base velocity (real)", np.array(device.velocity.value[:6]);
+            print "Base velocity (esti)", np.array(ff_locator.v.value[:6]), '\n';
             
         if(i==2):
             ctrl_manager = ControlManager("ctrl_man");
