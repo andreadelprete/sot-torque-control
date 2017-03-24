@@ -347,12 +347,17 @@ const double DEFAULT_MAX_CURRENT = 5;     /// max CURRENT (double in [0 Amp, 20 
       const std::map<unsigned int,std::string> ForceUtil::id_2_name = ForceUtil::create_id_2_name_map(ForceUtil::name_2_id);
       const std::map<unsigned int,ForceLimits> ForceUtil::id_2_limits = ForceUtil::create_id_2_limits_map();
 
-      bool config_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot);
-      bool config_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf);
-      bool velocity_urdf_to_sot(const Eigen::VectorXd & v_urdf, Eigen::VectorXd & v_sot);
-      bool velocity_sot_to_urdf(const Eigen::VectorXd & v_sot, Eigen::VectorXd & v_urdf);
-      bool joints_urdf_to_sot(const Eigen::VectorXd & q_urdf, Eigen::VectorXd & q_sot);
-      bool joints_sot_to_urdf(const Eigen::VectorXd & q_sot, Eigen::VectorXd & q_urdf);
+      bool base_se3_to_sot(Eigen::ConstRefVector pos,
+                           Eigen::ConstRefMatrix R,
+                           Eigen::RefVector q_sot);
+      bool base_urdf_to_sot(Eigen::ConstRefVector q_urdf, Eigen::RefVector q_sot);
+      bool base_sot_to_urdf(Eigen::ConstRefVector q_sot, Eigen::RefVector q_urdf);
+      bool config_urdf_to_sot(Eigen::ConstRefVector q_urdf, Eigen::RefVector q_sot);
+      bool config_sot_to_urdf(Eigen::ConstRefVector q_sot, Eigen::RefVector q_urdf);
+      bool velocity_urdf_to_sot(Eigen::ConstRefVector v_urdf, Eigen::RefVector v_sot);
+      bool velocity_sot_to_urdf(Eigen::ConstRefVector v_sot, Eigen::RefVector v_urdf);
+      bool joints_urdf_to_sot(Eigen::ConstRefVector q_urdf, Eigen::RefVector q_sot);
+      bool joints_sot_to_urdf(Eigen::ConstRefVector q_sot, Eigen::RefVector q_urdf);
 
     }    // namespace torque_control
   }      // namespace sot

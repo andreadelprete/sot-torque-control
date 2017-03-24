@@ -61,6 +61,11 @@ namespace Eigen
   typedef Map<VectorXd>                             SigVectorXd;
   typedef const Map<const MatrixRXd>                const_SigMatrixXd;
   typedef const Map<const VectorXd>                 const_SigVectorXd;
+
+  typedef Eigen::Ref<Eigen::VectorXd>              RefVector;
+  typedef const Eigen::Ref<const Eigen::VectorXd>& ConstRefVector;
+  typedef Eigen::Ref<Eigen::MatrixXd>              RefMatrix;
+  typedef const Eigen::Ref<const Eigen::MatrixXd>  ConstRefMatrix;
 }
 
 #define EIGEN_CONST_MATRIX_FROM_SIGNAL(name,signal)	                 \
