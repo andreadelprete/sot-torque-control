@@ -13,12 +13,13 @@ from time import sleep
 ''' Main function to call before starting the graph. '''
 def main_pre_start_pwm(robot,dt=0.001,delay=0.01, urdfFileName='/opt/openrobots/share/hrp2_14_description/urdf/hrp2_14.urdf'):
     robot.device.setControlInputType('position');
-    ff_locator      = create_free_flyer_locator(robot.device,urdfFileName, robot.dynamic);
-    flex_est        = create_flex_estimator(robot,dt);
-    floatingBase    = create_floatingBase(flex_est,ff_locator);
-
     traj_gen        = create_trajectory_generator(robot.device, dt);
     estimator       = create_estimator(robot.device, dt, delay, traj_gen);
+
+    ff_locator      = create_free_flyer_locator(robot.device, estimator, urdfFileName, robot.dynamic);
+    flex_est        = create_flex_estimator(robot, ff_locator, dt);
+    floatingBase    = create_floatingBase(flex_est, ff_locator);
+
     pos_ctrl        = create_position_controller(robot.device, estimator, dt, traj_gen);
     torque_ctrl     = create_torque_controller(robot.device, estimator);    
 #    inv_dyn         = create_inverse_dynamics(robot.device, estimator, torque_ctrl, traj_gen, dt);    

@@ -19,32 +19,38 @@ from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
 
-def create_free_flyer_locator(device, urdf, dynamic=None):
+def create_free_flyer_locator(device, estimator, urdf, dynamic=None):
     from dynamic_graph.sot.torque_control.free_flyer_locator import FreeFlyerLocator
     ff_locator = FreeFlyerLocator("ffLocator");
-    plug(device.robotState, ff_locator.base6d_encoders);
+    plug(device.robotState,           ff_locator.base6d_encoders);
+    plug(estimator.jointsVelocities,  ff_locator.joint_velocities);
     if(dynamic!=None):
         plug(ff_locator.base6dFromFoot_encoders, dynamic.position);
     ff_locator.init(urdf);
     return ff_locator;
     
-def create_flex_estimator(robot, dt=0.001):
+def create_flex_estimator(robot, ff_locator, dt=0.001):
     from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import HRP2ModelBaseFlexEstimatorIMUForce
     flex_est = HRP2ModelBaseFlexEstimatorIMUForce(robot, useMocap=False, dt=dt);
-    flex_est.setOn(False)
-    flex_est.interface.setExternalContactPresence(False)
-#    flex_est.enabledContacts_lf_rf_lh_rh.value=(1,1,0,0)
-    flex_est.leftFootVelocity.sin2.value = 36*(0.0,)
-    flex_est.rightFootVelocity.sin2.value = 36*(0.0,)
-    flex_est.inputVel.sin2.value = 36*(0.0,)
-    flex_est.DCom.sin2.value = 36*(0.0,)
-    robot.device.after.addSignal('flextimator.state');
+    flex_est.setOn(False);
+    flex_est.interface.setExternalContactPresence(False);
+    flex_est.interface.enabledContacts_lf_rf_lh_rh.value=(1,1,0,0);
+    plug(ff_locator.v, flex_est.leftFootVelocity.sin2);
+    plug(ff_locator.v, flex_est.rightFootVelocity.sin2);
+    plug(ff_locator.v, flex_est.inputVel.sin2);
+    plug(ff_locator.v, flex_est.DCom.sin2);
     return flex_est;
     
-def create_floatingBase(flex_est,ff_locator):
+def create_floatingBase(flex_est, ff_locator):
     from dynamic_graph.sot.application.state_observation.initializations.hrp2_model_base_flex_estimator_imu_force import FromLocalToGLobalFrame 
     floatingBase = FromLocalToGLobalFrame(flex_est, "FloatingBase")
-    plug(ff_locator.freeflyer_aa, floatingBase.sinPos)
+    plug(ff_locator.freeflyer_aa, floatingBase.sinPos);
+
+    from dynamic_graph.sot.core import Selec_of_vector
+    base_vel_no_flex = Selec_of_vector('base_vel_no_flex');
+    plug(ff_locator.v, base_vel_no_flex.sin);
+    base_vel_no_flex.selec(0, 6);
+    plug(base_vel_no_flex.sout,   floatingBase.sinVel);
     return floatingBase
     
 def create_position_controller(device, estimator, dt=0.001, traj_gen=None):
@@ -136,7 +142,7 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     plug(base6d_encoders.sout,                 ctrl.q);
 
     ctrl.v.value = 36*(0.0,);
-#    plug(estimator.jointsVelocities,        ctrl.v);
+    plug(floatingBase.soutVel,              ctrl.v);
     plug(traj_gen.q,                        ctrl.posture_ref_pos);
     plug(traj_gen.dq,                       ctrl.posture_ref_vel);
     plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
