@@ -187,6 +187,8 @@ namespace dynamicgraph {
         pininvdyn::math::Vector  m_tau_sot;
         pininvdyn::math::Vector  m_q_urdf;
         pininvdyn::math::Vector  m_v_urdf;
+
+        unsigned int m_timeLast;
         
       }; // class InverseDynamicsBalanceController
     }    // namespace torque_control

@@ -178,6 +178,7 @@ namespace dynamicgraph
             ,m_enabled(false)
             ,m_t(0.0)
             ,m_firstTime(true)
+            ,m_timeLast(0)
       {
         Entity::signalRegistration( INPUT_SIGNALS << OUTPUT_SIGNALS );
 
@@ -412,6 +413,9 @@ namespace dynamicgraph
           m_contactRF->setReference(H_rf);
           SEND_MSG("Setting right foot reference to "+toString(H_rf), MSG_TYPE_DEBUG);
         }
+        else if(m_timeLast != iter-1)
+          SEND_MSG("Last time "+toString(m_timeLast)+" is not current time-1: "+toString(iter), MSG_TYPE_ERROR);
+        m_timeLast = iter;
 
         const HqpData & hqpData = m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
 
