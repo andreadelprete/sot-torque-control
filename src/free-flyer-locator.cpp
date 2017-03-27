@@ -153,12 +153,12 @@ namespace dynamicgraph
           m_Mff = se3::SE3(se3::exp3(w), 0.5 * (iMo1.translation()+iMo2.translation() ));
 
           // due to distance from ankle to ground
-          m_Mff.translation()(0) -= RIGHT_FOOT_SOLE_XYZ[0];
-          m_Mff.translation()(1) -= RIGHT_FOOT_SOLE_XYZ[1];
-          m_Mff.translation()(2) -= RIGHT_FOOT_SOLE_XYZ[2];
+          Eigen::Map<const Eigen::Vector3d> righ_foot_sole_xyz(&RIGHT_FOOT_SOLE_XYZ[0]);
 
           m_q_sot.tail<N_JOINTS>() = q.tail<N_JOINTS>();
-          base_se3_to_sot(m_Mff.translation(), m_Mff.rotation(), m_q_sot.head<6>());
+          base_se3_to_sot(m_Mff.translation()-righ_foot_sole_xyz,
+                          m_Mff.rotation(),
+                          m_q_sot.head<6>());
 
           EIGEN_VECTOR_TO_VECTOR(m_q_sot, s);
         }
@@ -185,9 +185,8 @@ namespace dynamicgraph
         freeflyer << m_Mff.translation(), aa.axis() * aa.angle();
 
         // due to distance from ankle to ground
-        freeflyer(0) -= RIGHT_FOOT_SOLE_XYZ[0];
-        freeflyer(1) -= RIGHT_FOOT_SOLE_XYZ[1];
-        freeflyer(2) -= RIGHT_FOOT_SOLE_XYZ[2];
+        Eigen::Map<const Eigen::Vector3d> righ_foot_sole_xyz(&RIGHT_FOOT_SOLE_XYZ[0]);
+        freeflyer.head<3>() -= righ_foot_sole_xyz;
 
         EIGEN_VECTOR_TO_VECTOR(freeflyer,s);
         return s;
