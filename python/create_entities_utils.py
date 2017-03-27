@@ -141,8 +141,13 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     base6d_encoders.selec2(6,36);
     plug(base6d_encoders.sout,                 ctrl.q);
 
-    ctrl.v.value = 36*(0.0,);
-    plug(floatingBase.soutVel,              ctrl.v);
+    v = Stack_of_vector('v');
+    plug(floatingBase.soutVel, v.sin1);
+    v.selec1(0,6);
+    plug(estimator.jointsVelocities,    v.sin2);
+    v.selec2(6,36);
+    plug(v.sout,                            ctrl.v);
+
     plug(traj_gen.q,                        ctrl.posture_ref_pos);
     plug(traj_gen.dq,                       ctrl.posture_ref_vel);
     plug(traj_gen.ddq,                      ctrl.posture_ref_acc);
