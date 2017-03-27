@@ -296,7 +296,7 @@ def create_ros_topics(robot=None, estimator=None, torque_ctrl=None, traj_gen=Non
 
         
 #        robot.device.after.addSignal('rosImport.trigger');
-        robot.device.after.addDownsampledSignal('rosImport.trigger',30);
+        robot.device.after.addDownsampledSignal('rosImport.trigger',1);
     if(estimator!=None):
 #        ros.add('vector', 'estimator_jointsPositions_ros',          'estimator_jointsPositions');
         ros.add('vector', 'estimator_jointsVelocities_ros',         'estimator_jointsVelocities');
