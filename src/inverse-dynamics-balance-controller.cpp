@@ -45,6 +45,8 @@ namespace dynamicgraph
 //Size to be aligned                "-------------------------------------------------------"
 #define PROFILE_TAU_DES_COMPUTATION "InverseDynamicsBalanceController: desired tau"
 #define PROFILE_HQP_SOLUTION        "InverseDynamicsBalanceController: HQP"
+#define PROFILE_PREPARE_INV_DYN     "InverseDynamicsBalanceController: prepare inv-dyn"
+#define PROFILE_READ_INPUT_SIGNALS  "InverseDynamicsBalanceController: read input signals"
 
 #define INPUT_SIGNALS         m_com_ref_posSIN \
                            << m_com_ref_velSIN \
@@ -342,6 +344,7 @@ namespace dynamicgraph
 
         getProfiler().start(PROFILE_TAU_DES_COMPUTATION);
 
+        getProfiler().start(PROFILE_READ_INPUT_SIGNALS);
         m_active_joints_checkedSINNER(iter);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(q_sot, m_qSIN(iter));
         assert(q_sot.size()==N_JOINTS+6);
@@ -375,7 +378,9 @@ namespace dynamicgraph
         assert(kp_pos.size()==N_JOINTS);
         EIGEN_CONST_VECTOR_FROM_SIGNAL(kd_pos, m_kd_posSIN(iter));
         assert(kd_pos.size()==N_JOINTS);
+        getProfiler().stop(PROFILE_READ_INPUT_SIGNALS);
 
+        getProfiler().start(PROFILE_PREPARE_INV_DYN);
         config_sot_to_urdf(q_sot, m_q_urdf);
         velocity_sot_to_urdf(v_sot, m_v_urdf);
 
@@ -418,6 +423,7 @@ namespace dynamicgraph
         m_timeLast = iter;
 
         const HqpData & hqpData = m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
+        getProfiler().stop(PROFILE_PREPARE_INV_DYN);
 
         getProfiler().start(PROFILE_HQP_SOLUTION);
         const HqpOutput & sol = m_hqpSolver->solve(hqpData);
