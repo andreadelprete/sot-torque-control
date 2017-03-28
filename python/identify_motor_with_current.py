@@ -117,75 +117,77 @@ INVERT_CURRENT = False
 #~ IDENTIFICATION_MODE='vel'
 #~ IDENTIFICATION_MODE='acc'
 
+IDENTIFICATION_MODE='low_level'
+JOINT_NAME = 'rk'
+data_folder='../../results/20161114_153220_rk_vel/'
+#~ data_folder='../../results/20161114_151812_rhp_vel/'
+#~ data_folder='../../results/20170203_164133_com_sin_z_001/'
 #Compare Model Vs Measurment
-IDENTIFICATION_MODE='test_model'
-JOINT_NAME = 'rhp'
-data_folder='../../results/20170203_164133_com_sin_z_001/'
-#~ data_folder= '../../results/20161114_153220_rk_vel/'
-
-
-Nvel = 10
-if(JOINT_NAME == 'rhy' ):
-    INVERT_CURRENT = True
-    Nvel = 9
-    data_folder_static = '../../results/20161114_135332_rhy_static/';
-    data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
-    data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
-if(JOINT_NAME == 'rhr' ):
-    INVERT_CURRENT = True
+#~ IDENTIFICATION_MODE='test_model'
+#~ JOINT_NAME = 'rhp'
+#~ data_folder='../../results/20170203_164133_com_sin_z_001/'
+#~ data_folder= '../../results/20161114_152706_rk_acc/' ; INVERT_CURRENT = True
+if (IDENTIFICATION_MODE != 'test_model') :
     Nvel = 10
-    data_folder_static = '../../results/20161114_144232_rhr_static/';
-    data_folder_vel    = '../../results/20161114_150356_rhr_vel/';
-    data_folder_acc    = '../../results/20161114_145456_rhr_acc/';
-if(JOINT_NAME == 'rhp' ):
-    data_folder_static = '../../results/20161114_150722_rhp_static/';
-    data_folder_vel    = '../../results/20161114_151812_rhp_vel/';
-    data_folder_acc    = '../../results/20161114_151259_rhp_acc/';
-if(JOINT_NAME == 'rk' ):
-    INVERT_CURRENT = True
-    data_folder_static = '../../results/20161114_152140_rk_static/';
-    data_folder_vel    = '../../results/20161114_153220_rk_vel/';
-    data_folder_acc    = '../../results/20161114_152706_rk_acc/';
-if(JOINT_NAME == 'rap' ):
-    INVERT_CURRENT = True
-    data_folder_static = '../../results/20161114_153739_rap_static/';
-    data_folder_vel    = '../../results/20161114_154559_rap_vel/';
-    data_folder_acc    = '../../results/20161114_154316_rap_acc/';
-if(JOINT_NAME == 'rar' ):
-    data_folder_static = '../../results/20161114_154945_rar_static/';
-    data_folder_vel    = '../../results/20161114_160038_rar_vel/';
-    data_folder_acc    = '../../results/20161114_155545_rar_acc/';
+    if(JOINT_NAME == 'rhy' ):
+        INVERT_CURRENT = True
+        Nvel = 9
+        data_folder_static = '../../results/20161114_135332_rhy_static/';
+        data_folder_vel    = '../../results/20161114_143152_rhy_vel/';
+        data_folder_acc    = '../../results/20161114_142351_rhy_acc/';
+    if(JOINT_NAME == 'rhr' ):
+        INVERT_CURRENT = True
+        Nvel = 10
+        data_folder_static = '../../results/20161114_144232_rhr_static/';
+        data_folder_vel    = '../../results/20161114_150356_rhr_vel/';
+        data_folder_acc    = '../../results/20161114_145456_rhr_acc/';
+    if(JOINT_NAME == 'rhp' ):
+        data_folder_static = '../../results/20161114_150722_rhp_static/';
+        data_folder_vel    = '../../results/20161114_151812_rhp_vel/';
+        data_folder_acc    = '../../results/20161114_151259_rhp_acc/';
+    if(JOINT_NAME == 'rk' ):
+        INVERT_CURRENT = True
+        data_folder_static = '../../results/20161114_152140_rk_static/';
+        data_folder_vel    = '../../results/20161114_153220_rk_vel/';
+        data_folder_acc    = '../../results/20161114_152706_rk_acc/';
+    if(JOINT_NAME == 'rap' ):
+        INVERT_CURRENT = True
+        data_folder_static = '../../results/20161114_153739_rap_static/';
+        data_folder_vel    = '../../results/20161114_154559_rap_vel/';
+        data_folder_acc    = '../../results/20161114_154316_rap_acc/';
+    if(JOINT_NAME == 'rar' ):
+        data_folder_static = '../../results/20161114_154945_rar_static/';
+        data_folder_vel    = '../../results/20161114_160038_rar_vel/';
+        data_folder_acc    = '../../results/20161114_155545_rar_acc/';
 
-if(JOINT_NAME == 'lhy' ):
-    data_folder_static = '../../results/20170113_144220_lhy_static/';
-    data_folder_vel    = '../../results//';
-    data_folder_acc    = '../../results/20170113_144710_lhy_const_acc/';
-if(JOINT_NAME == 'lhr' ):
-    data_folder_static = '../../results/20170113_145227_lhr_static/';
-    data_folder_vel    = '../../results/20170113_150215_lhr_const_vel/';
-    data_folder_acc    = '../../results/20170113_145826_lhr_const_acc/';
-if(JOINT_NAME == 'lhp' ):
-    data_folder_static = '../../results/20170113_150628_lhp_static/';
-    data_folder_vel    = '../../results/20170113_151433_lhp_const_vel/';
-    data_folder_acc    = '../../results/20170113_151103_lhp_const_acc/';
-if(JOINT_NAME == 'lk' ):
-    data_folder_static = '../../results/20170113_151748_lk_static/';
-    data_folder_vel    = '../../results/20170113_152924_lk_const_vel/';
-    data_folder_acc    = '../../results/20170113_152606_lk_const_acc/';
-if(JOINT_NAME == 'lap' ):
-    data_folder_static = '../../results/20170113_154007_lap_static/';
-    data_folder_vel    = '../../results/20170113_154834_lap_const_vel/';
-    data_folder_acc    = '../../results/20170113_154303_lap_const_acc/';
-if(JOINT_NAME == 'lar' ):
-    data_folder_static = '../../results/20170113_155150_lar_static/';
-    data_folder_vel    = '../../results/20170113_160057_lar_const_vel/';
-    data_folder_acc    = '../../results/20170113_155706_lar_const_acc/';
+    if(JOINT_NAME == 'lhy' ):
+        data_folder_static = '../../results/20170113_144220_lhy_static/';
+        data_folder_vel    = '../../results//';
+        data_folder_acc    = '../../results/20170113_144710_lhy_const_acc/';
+    if(JOINT_NAME == 'lhr' ):
+        data_folder_static = '../../results/20170113_145227_lhr_static/';
+        data_folder_vel    = '../../results/20170113_150215_lhr_const_vel/';
+        data_folder_acc    = '../../results/20170113_145826_lhr_const_acc/';
+    if(JOINT_NAME == 'lhp' ):
+        data_folder_static = '../../results/20170113_150628_lhp_static/';
+        data_folder_vel    = '../../results/20170113_151433_lhp_const_vel/';
+        data_folder_acc    = '../../results/20170113_151103_lhp_const_acc/';
+    if(JOINT_NAME == 'lk' ):
+        data_folder_static = '../../results/20170113_151748_lk_static/';
+        data_folder_vel    = '../../results/20170113_152924_lk_const_vel/';
+        data_folder_acc    = '../../results/20170113_152606_lk_const_acc/';
+    if(JOINT_NAME == 'lap' ):
+        data_folder_static = '../../results/20170113_154007_lap_static/';
+        data_folder_vel    = '../../results/20170113_154834_lap_const_vel/';
+        data_folder_acc    = '../../results/20170113_154303_lap_const_acc/';
+    if(JOINT_NAME == 'lar' ):
+        data_folder_static = '../../results/20170113_155150_lar_static/';
+        data_folder_vel    = '../../results/20170113_160057_lar_const_vel/';
+        data_folder_acc    = '../../results/20170113_155706_lar_const_acc/';
 
 if (IDENTIFICATION_MODE=='static') : data_folder = data_folder_static
 if (IDENTIFICATION_MODE=='vel')    : data_folder = data_folder_vel
 if (IDENTIFICATION_MODE=='acc')    : data_folder = data_folder_acc
-
-if (IDENTIFICATION_MODE=='test_model') : INVERT_CURRENT = False
 
 JOINT_ID = jID[JOINT_NAME]
 
@@ -272,7 +274,6 @@ ddq     = ddq    [maskSaturation];
 tau     = tau    [maskSaturation];
 ctrl    = ctrl   [maskSaturation];
 current = current[maskSaturation];
-
 maskPosVel = maskPosVel[maskSaturation]
 maskNegVel = maskNegVel[maskSaturation]
 
@@ -318,6 +319,107 @@ if USING_CONTROL_AS_CURRENT_MEASURE:
     #~ current[maskInDZ] =  0.0
 
     
+if(IDENTIFICATION_MODE=='low_level'):
+    #Filter current*****************************************************
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    from matplotlib.ticker import LinearLocator, FormatStrFormatter
+    import numpy as np
+    
+    DZ = 0.4
+    K3 = 1.0#1.06
+    mask=abs(K3*ctrl/102.4-current)<DZ
+    times = np.arange(len(enc))*0.001
+    plt.figure()
+    
+    plt.subplot(411)
+    plt.plot(times,current      ,'.')
+    plt.plot(times[mask],current[mask],'.')
+    plt.title('current')
+    
+    plt.subplot(412)
+    plt.plot(times,dq            ,'.')
+    plt.plot(times[mask],dq[mask],'.')
+    plt.title('dq')
+    
+    plt.subplot(413)
+    plt.plot(times,ctrl            ,'.')
+    plt.plot(times[mask],ctrl[mask],'.')
+    plt.title(ctrl)
+    plt.title('ctrl')
+    
+    plt.subplot(414)
+    plt.plot(times,K3*ctrl/102.4-current            ,'.')
+    plt.plot(times[mask],K3*ctrl[mask]/102.4-current[mask],'.')
+    plt.title(ctrl)
+    plt.title('ctrl-current ')
+    
+    
+    plt.show()
+    
+    #~ embed()
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    NDZ= 100
+    NK3= 100
+    lDZs = np.linspace(0.3,0.5,NDZ)
+    lK3s = np.linspace(0.95,1.2,NK3)
+    DZs, K3s = np.meshgrid(lDZs, lK3s)
+    cost=np.zeros([NDZ,NK3])
+    for i in range(NDZ):
+        print str(int(1000*i/NDZ)/10.0) + '%'
+        for j in range(NK3):
+            #~ print (i,j)
+            #~ if i == 50: embed()
+            DZ=lDZs[i]
+            K3=lK3s[j]
+            mask=abs(K3*ctrl/102.4-current) < DZ
+            not_mask = np.logical_not(mask)           
+            #plt.plot(current[mask],dq[mask],'.')
+            cost[i,j]=-np.corrcoef(current[mask],dq[mask])[0,1]            #* np.sum(not_mask) / (np.sum(mask) + np.sum(not_mask))
+            #~ embed()
+            #~ cost[i,j]+=np.corrcoef(ctrl[not_mask],dq[not_mask])[0,1]       * np.sum(mask) / (np.sum(mask) + np.sum(not_mask))
+            #~ cost[i,j]+=np.corrcoef(ctrl[not_mask],current[not_mask])[0,1]  * np.sum(mask) / (np.sum(mask) + np.sum(not_mask))
+            #~ cost[i,j]=cost[i,j]/3.0
+
+            #~ ax.scatter(DZ, K3, cost,cmap=cm.coolwarm)
+    surf = ax.plot_surface(DZs, K3s, cost.T, cmap=cm.coolwarm,
+                       linewidth=0, antialiased=False)
+                       
+    # Customize the z axis.
+    ax.set_zlim(np.min(cost), 1.01)
+    ax.zaxis.set_major_locator(LinearLocator(2))
+    ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+    # Add a color bar which maps values to colors.
+    fig.colorbar(surf, shrink=0.5, aspect=5)                       
+    plt.show()
+    
+    #plot a particular case
+    DZ=0.4
+    K3=1.0
+    mask=abs(K3*ctrl/102.4-current) < DZ
+    plt.xlabel('current') 
+    plt.ylabel('dq') 
+    plt.plot(current[mask],dq[mask],'.')
+    plt.show()
+    
+    #plot the optimum
+    iDZ,iK3 = np.unravel_index(np.argmax(cost),cost.shape)
+    DZ=lDZs[iDZ]
+    K3=lK3s[iK3]
+    print 'DZ = ' + str(DZ)
+    print 'K3 = ' + str(K3)
+    mask=abs(K3*ctrl/102.4-current) < DZ
+    plt.xlabel('current') 
+    plt.ylabel('dq') 
+    plt.plot(current[mask],dq[mask],'.')
+    print -np.corrcoef(current[mask],dq[mask])[0,1]
+    print cost[iDZ,iK3]
+    
+    plt.show()
+    embed()
 #Ktau,Tau0 Identification
 if(IDENTIFICATION_MODE=='static'):
     #Filter current*****************************************************
@@ -325,12 +427,12 @@ if(IDENTIFICATION_MODE=='static'):
     filtered_current = signal.convolve(current, win, mode='same')/sum(win)
     #~ plt.plot(current)
     #~ plt.plot(filtered_current)
-    current = filtered_current
+    #~ current = filtered_current
     # Mask valid data***************************************************
     m = len(dq);
     # remove high velocity
     maskConstAng = (abs (dq)<ZERO_VELOCITY_THRESHOLD)
-    # erode to get only steady phases where velocity is constant 
+    # erode to get only steady phases where velocity is small 
     maskConstAng=ndimage.morphology.binary_erosion(maskConstAng,None,100)
     #~ plt.figure()
     #~ plt.plot(ddq);
@@ -342,6 +444,48 @@ if(IDENTIFICATION_MODE=='static'):
         q_const=enc.copy()
         q_const[np.logical_not(maskConstAng)]=np.nan
         plt.plot(q_const); plt.ylabel('q_const')
+        
+    # plot dead zone effect ********************************************
+    plt.figure()
+    plt.plot(current)
+    plt.plot(ctrl/102.4)
+    
+    
+    plt.figure()
+    y = current
+    y_label = r'$i(t)$'
+    x = ctrl/102.4 - current
+    x_label =r'$ctrl(t)-i(t)$'
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)    
+    plt.plot(x,y,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot(x[maskConstPosAng],y[maskConstPosAng],'rx',lw=3,markersize=1); 
+    plt.plot(x[maskConstNegAng],y[maskConstNegAng],'bx',lw=3,markersize=1); 
+    
+    plt.figure()
+    y = ctrl/102.4
+    y_label = r'$ctrl(t)$'
+    x = ctrl/102.4 - current
+    x_label =r'$ctrl(t)-i(t)$'
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)    
+    plt.plot(x,y,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot(x[maskConstPosAng],y[maskConstPosAng],'rx',lw=3,markersize=1); 
+    plt.plot(x[maskConstNegAng],y[maskConstNegAng],'bx',lw=3,markersize=1); 
+    
+    plt.figure()
+    y = ctrl/102.4
+    y_label = r'$ctrl(t)$'
+    x = current
+    x_label =r'$i(t)$'
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)    
+    plt.plot(x,y,'.' ,lw=3,markersize=1,c='0.5');  
+    plt.plot([-3,3],[-3,3]);  
+    
+    
+    plt.show()
+    embed()
     #~ y = a. x   +  b
     #~ i = Kt.tau + Kf
     #~ 
@@ -607,18 +751,26 @@ if (IDENTIFICATION_MODE=='test_model'):
     for idx in range(len(tau)):
         tau_motor[idx]=motor.getTorque    (current[idx], dq[idx], ddq[idx])
         i_motor[idx]  =motor.getCurrent   (tau[idx],     dq[idx], ddq[idx])
-        
+    
+
     plt.figure()
     plt.plot(tau)
     plt.plot(tau_motor)
     plt.legend(['Estimated torque with dynamic model','Estimated torque with motor model'])
     
     plt.figure()
+    
+    plt.subplot(211)
+    plt.plot(dq)
+    plt.subplot(212)
     plt.plot(current)
     plt.plot(i_motor)
     plt.legend(['measured current','Estimated current with model'])
     
-    #~ plt.figure()
-    #~ plt.plot(current)
-    #~ plt.plot(ctrl/102.4)
+    
+    
+    
+    plt.figure()
+    plt.plot(current)
+    plt.plot(ctrl/102.4)
     plt.show()

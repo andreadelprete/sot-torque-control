@@ -25,7 +25,7 @@ def main():
     PLOT_DATA = False;
     FORCE_ESTIMATE_RECOMPUTATION = True;
     NEGLECT_GYROSCOPE = True;
-    NEGLECT_ACCELEROMETER = True;
+    NEGLECT_ACCELEROMETER = False;
     SET_NORMAL_FORCE_RIGHT_FOOT_TO_ZERO = False;
     USE_FT_SENSORS = True
     #~ JOINT_ID = np.array(range(12)); ''' IDs of the joints to save '''
