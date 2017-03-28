@@ -120,6 +120,17 @@ def smoothly_set_signal_to_zero(sig):
     v[:] = 0.0;
     sig.value = tuple(v);
     
+def smoothly_set_signal(sig, final_value, duration=5.0, steps=500, prints = 10):
+    v = np.array(sig.value);
+    for i in range(steps+1):
+        alpha = 1.0*i/steps
+        sig.value = tuple(v*alpha);
+        sleep(1.0*duration/steps);
+        if (i%(steps/prints)==0):
+            print 'smoothly setting signal... %(number)02d%%' % {"number": 100.*alpha} 
+    print 'Signal set';
+    sig.value = tuple(final_value);
+    
 def monitor_tracking_error(sig, sigRef, dt, time):
     N = int(time/dt);
     err = np.zeros((N,6));
