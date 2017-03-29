@@ -136,6 +136,8 @@ namespace dynamicgraph {
         DECLARE_SIGNAL_OUT(f_des_left_foot,           ml::Vector);
         DECLARE_SIGNAL_OUT(zmp_des_right_foot,        ml::Vector);
         DECLARE_SIGNAL_OUT(zmp_des_left_foot,         ml::Vector);
+        DECLARE_SIGNAL_OUT(zmp_des_right_foot_local,  ml::Vector);
+        DECLARE_SIGNAL_OUT(zmp_des_left_foot_local,   ml::Vector);
         DECLARE_SIGNAL_OUT(zmp_des,                   ml::Vector);
         DECLARE_SIGNAL_OUT(com,                       ml::Vector);
         DECLARE_SIGNAL_OUT(base_orientation,          ml::Vector);

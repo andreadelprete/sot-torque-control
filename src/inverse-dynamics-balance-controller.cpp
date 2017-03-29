@@ -98,6 +98,8 @@ namespace dynamicgraph
                            << m_f_des_left_footSOUT \
                            << m_zmp_des_right_footSOUT \
                            << m_zmp_des_left_footSOUT \
+                           << m_zmp_des_right_foot_localSOUT \
+                           << m_zmp_des_left_foot_localSOUT \
                            << m_zmp_desSOUT \
                            << m_comSOUT \
                            << m_base_orientationSOUT \
@@ -168,6 +170,8 @@ namespace dynamicgraph
             ,CONSTRUCT_SIGNAL_OUT(f_des_left_foot,            ml::Vector, m_tau_desSOUT)
             ,CONSTRUCT_SIGNAL_OUT(zmp_des_right_foot,         ml::Vector, m_f_des_right_footSOUT)
             ,CONSTRUCT_SIGNAL_OUT(zmp_des_left_foot,          ml::Vector, m_f_des_left_footSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(zmp_des_right_foot_local,   ml::Vector, m_f_des_right_footSOUT)
+            ,CONSTRUCT_SIGNAL_OUT(zmp_des_left_foot_local,    ml::Vector, m_f_des_left_footSOUT)
             ,CONSTRUCT_SIGNAL_OUT(zmp_des,                    ml::Vector, m_zmp_des_left_footSOUT<<
                                                                           m_zmp_des_right_footSOUT)
             ,CONSTRUCT_SIGNAL_OUT(dv_des,                     ml::Vector, m_tau_desSOUT)
@@ -419,7 +423,14 @@ namespace dynamicgraph
           SEND_MSG("Setting right foot reference to "+toString(H_rf), MSG_TYPE_DEBUG);
         }
         else if(m_timeLast != iter-1)
+        {
           SEND_MSG("Last time "+toString(m_timeLast)+" is not current time-1: "+toString(iter), MSG_TYPE_ERROR);
+          if(m_timeLast == iter)
+          {
+            EIGEN_VECTOR_TO_VECTOR(m_tau_sot, s);
+            return s;
+          }
+        }
         m_timeLast = iter;
 
         const HqpData & hqpData = m_invDyn->computeProblemData(m_t, m_q_urdf, m_v_urdf);
@@ -435,7 +446,6 @@ namespace dynamicgraph
           SEND_MSG("HQP solver failed to find a solution: "+toString(sol.status), MSG_TYPE_ERROR);
           SEND_MSG(hqpDataToString(hqpData, false), MSG_TYPE_DEBUG);
           s.resize(0);
-          getProfiler().stop(PROFILE_TAU_DES_COMPUTATION);
           return s;
         }
 
@@ -496,6 +506,52 @@ namespace dynamicgraph
         const Eigen::MatrixXd & T = m_contactLF->getForceGeneratorMatrix();
         m_f_LF = T*m_f.tail<12>();
         EIGEN_VECTOR_TO_VECTOR(m_f_LF, s);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(zmp_des_right_foot_local,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal zmp_des_right_foot_local before initialization!");
+          return s;
+        }
+        if(s.size()!=2)
+          s.resize(2);
+        m_f_des_right_footSOUT(iter);
+        if(fabs(m_f_RF(2)>1.0))
+        {
+          m_zmp_RF(0) = -m_f_RF(4) / m_f_RF(2);
+          m_zmp_RF(1) =  m_f_RF(3) / m_f_RF(2);
+        }
+        else
+          m_zmp_RF.setZero();
+
+        s(0) = m_zmp_RF(0);
+        s(1) = m_zmp_RF(1);
+        return s;
+      }
+
+      DEFINE_SIGNAL_OUT_FUNCTION(zmp_des_left_foot_local,ml::Vector)
+      {
+        if(!m_initSucceeded)
+        {
+          SEND_WARNING_STREAM_MSG("Cannot compute signal zmp_des_left_foot_local before initialization!");
+          return s;
+        }
+        if(s.size()!=2)
+          s.resize(2);
+        m_f_des_left_footSOUT(iter);
+        if(fabs(m_f_LF(2)>1.0))
+        {
+          m_zmp_LF(0) = -m_f_LF(4) / m_f_LF(2);
+          m_zmp_LF(1) =  m_f_LF(3) / m_f_LF(2);
+        }
+        else
+          m_zmp_LF.setZero();
+
+        s(0) = m_zmp_LF(0);
+        s(1) = m_zmp_LF(1);
         return s;
       }
 
