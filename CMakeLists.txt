@@ -86,7 +86,7 @@ SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/force-torque-estimator.hh
   include/sot/torque_control/motor-model.hh
   include/sot/torque_control/joint-trajectory-generator.hh
-  #include/sot/torque_control/nd-trajectory-generator.hh
+  include/sot/torque_control/nd-trajectory-generator.hh
   include/sot/torque_control/free-flyer-locator.hh
   include/sot/torque_control/inverse-dynamics-controller.hh
   include/sot/torque_control/inverse-dynamics-balance-controller.hh
@@ -95,6 +95,7 @@ SET(${LIBRARY_NAME}_HEADERS
   include/sot/torque_control/control-manager.hh
   include/sot/torque_control/hrp2-common.hh
   include/sot/torque_control/hrp2-device-pos-ctrl.hh
+  #include/sot/torque_control/hrp2-device-torque-ctrl.hh
   include/sot/torque_control/commands-helper.hh
   include/sot/torque_control/signal-helper.hh
   include/sot/torque_control/utils/logger.hh
