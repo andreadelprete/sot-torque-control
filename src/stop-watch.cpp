@@ -143,6 +143,10 @@ void Stopwatch::stop(string perf_name)
   
   PerformanceData& perf_info = records_of->find(perf_name)->second;
   
+  // check whether the performance has been reset
+  if(perf_info.clock_start==0)
+    return;
+
   perf_info.stops++;
   long double  lapse = clock_end - perf_info.clock_start;
   
@@ -172,7 +176,11 @@ void Stopwatch::pause(string perf_name)
     throw StopwatchException("Performance not initialized.");
   
   PerformanceData& perf_info = records_of->find(perf_name)->second;
-  
+
+  // check whether the performance has been reset
+  if(perf_info.clock_start==0)
+    return;
+
   long double  lapse = clock_end - perf_info.clock_start;
   
   // Update total time
@@ -230,7 +238,7 @@ void Stopwatch::turn_on()
 void Stopwatch::turn_off() 
 {
   std::cout << "Stopwatch inactive." << std::endl;
-	active = false;
+  active = false;
 }
 
 void Stopwatch::report(string perf_name, int precision, std::ostream& output) 
