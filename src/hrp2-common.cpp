@@ -25,9 +25,9 @@ namespace dynamicgraph
   {
     namespace torque_control
     {
-      namespace dg = ::dynamicgraph;
-      using namespace dg;
-      using namespace dg::command;
+      namespace dynamicgraph = ::dynamicgraph;
+      using namespace dynamicgraph;
+      using namespace dynamicgraph::command;
 
       bool base_se3_to_sot(Eigen::ConstRefVector pos,
                            Eigen::ConstRefMatrix R,
