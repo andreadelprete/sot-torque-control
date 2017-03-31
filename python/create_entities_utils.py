@@ -8,6 +8,7 @@ from dynamic_graph import plug
 from dynamic_graph.sot.torque_control.force_torque_estimator import ForceTorqueEstimator
 from dynamic_graph.sot.torque_control.joint_torque_controller import JointTorqueController
 from dynamic_graph.sot.torque_control.joint_trajectory_generator import JointTrajectoryGenerator
+from dynamic_graph.sot.torque_control.nd_trajectory_generator import NdTrajectoryGenerator
 from dynamic_graph.sot.torque_control.control_manager import ControlManager
 from dynamic_graph.sot.torque_control.inverse_dynamics_controller import InverseDynamicsController
 from dynamic_graph.sot.torque_control.inverse_dynamics_balance_controller import InverseDynamicsBalanceController
@@ -18,6 +19,14 @@ from hrp2_motors_parameters import NJ
 from hrp2_motors_parameters import *
 from hrp2_joint_pos_ctrl_gains import *
 import numpy as np
+
+
+def create_com_traj_gen(dt=0.001):
+    com_traj_gen = NdTrajectoryGenerator("com_traj_gen");
+    import balance_ctrl_conf as conf
+    com_traj_gen.initial_value.value = conf.COM_DES;
+    com_traj_gen.init(dt,3);
+    return com_traj_gen ;
 
 def create_free_flyer_locator(device, estimator, urdf, dynamic=None):
     from dynamic_graph.sot.torque_control.free_flyer_locator import FreeFlyerLocator
@@ -130,7 +139,7 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.init(dt);
     return torque_ctrl;
    
-def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, urdfFileName, dt=0.001):
+def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, com_traj_gen, urdfFileName, dt=0.001):
     ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
 
     from dynamic_graph.sot.core import Stack_of_vector
@@ -157,9 +166,9 @@ def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj
     plug(ctrl.tau_des,                      estimator.tauDes);
 
     import balance_ctrl_conf as conf
-    ctrl.com_ref_pos.value = conf.COM_DES;
-    ctrl.com_ref_vel.value = 3*(0.0,);
-    ctrl.com_ref_acc.value = 3*(0.0,);
+    plug(com_traj_gen.x,                    ctrl.com_ref_pos);
+    plug(com_traj_gen.dx,                   ctrl.com_ref_vel);
+    plug(com_traj_gen.ddx,                  ctrl.com_ref_acc);
 
     ctrl.rotor_inertias.value = conf.ROTOR_INERTIAS;
     ctrl.gear_ratios.value = conf.GEAR_RATIOS;
