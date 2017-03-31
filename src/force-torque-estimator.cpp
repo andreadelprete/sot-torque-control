@@ -537,13 +537,13 @@ namespace dynamicgraph
           {
             SEND_MSG("WARN nan detected on base linear velocity. Setting to (0,0,9.81) for hot fix ", MSG_TYPE_INFO);
             m_ddq.head<3>() = Vector3d::Zero();
-            m_ddq(2) = 9.81;
+            m_ddq(2) = -9.81;
           }
           else
             m_ddq.head<3>()     = m_node_body.body.ai.v();  // lin acc
           m_ddq.segment<3>(3) = m_node_body.body.ai.w();  // ang acc
           // remove gravity acceleration from IMU's measurement
-          m_ddq(2)            -= 9.81; // assume the world z axis points upwards
+          m_ddq(2)            += 9.81; // assume the world z axis points upwards
 
           // since the velocity of the free-flyer is different from when we called
           // jcalc, we have to recompute jcalc for the base link before calling RNEA
