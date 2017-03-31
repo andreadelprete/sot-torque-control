@@ -97,6 +97,7 @@ FOREACH(plugin ${plugins})
 
   PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} dynamic-graph)
   PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} sot-core)
+  PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} pinocchio)
 
   # build python submodule
   # (replace minus with underscore to make Python happy)
