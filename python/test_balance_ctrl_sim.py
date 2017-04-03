@@ -9,6 +9,7 @@ from numpy.linalg import norm
 from dynamic_graph import plug
 from create_entities_utils import NJ
 from dynamic_graph.sot.torque_control.inverse_dynamics_balance_controller import InverseDynamicsBalanceController
+from dynamic_graph.sot.torque_control.hrp2_device_torque_ctrl import HRP2DeviceTorqueCtrl
 from dynamic_graph.sot.core.robot_simu import RobotSimu
 from create_entities_utils import *
 from time import sleep
@@ -50,6 +51,22 @@ def create_device(q=None):
     device.increment(0.001);
     return device;
     
+def create_device_torque_ctrl(dt, urdfFilename, q=None):
+    device = HRP2DeviceTorqueCtrl("device");
+    device.kp_constraints.value = 6*(conf.kp_constr,);
+    device.kd_constraints.value = 6*(conf.kd_constr,);
+    device.rotor_inertias.value = conf.ROTOR_INERTIAS;
+    device.gear_ratios.value = conf.GEAR_RATIOS;
+    device.init(dt, urdfFilename);
+    if(q==None):
+        q = (0,0,0.7)+(NJ+3)*(0.0,);
+    tau_des = NJ*(0.0,);
+    device.set(q);
+    device.setVelocity((NJ+6)*(0.0,));
+    device.control.value = tau_des;
+    device.increment(0.001);
+    return device;
+    
 def main_new(dt=0.001, delay=0.01):
     np.set_printoptions(precision=2, suppress=True);
     COM_DES_1 = (0.012, 0.1, 0.81);
@@ -69,29 +86,30 @@ def main_new(dt=0.001, delay=0.01):
     simulator.verb=0;
     robot = simulator.r;
     
-    device          = create_device(conf.q0_sot);
-    ff_locator      = create_free_flyer_locator(device, conf.urdfFileName);
-#    flex_est        = create_flex_estimator(robot,dt);
-#    floatingBase    = create_floatingBase(flex_est,ff_locator);
+    device          = create_device_torque_ctrl(dt, conf.urdfFileName, conf.q0_sot);
     traj_gen        = create_trajectory_generator(device, dt);
     estimator       = create_estimator(device, dt, delay, traj_gen);
+    ff_locator      = create_free_flyer_locator(device, estimator, conf.urdfFileName);
+#    flex_est        = create_flex_estimator(robot,dt);
+#    floatingBase    = create_floatingBase(flex_est,ff_locator);    
     torque_ctrl     = create_torque_controller(device, estimator);
     pos_ctrl        = create_position_controller(device, estimator, dt, traj_gen);
     
-    ctrl = create_balance_controller(device, ff_locator, estimator, torque_ctrl, traj_gen, conf.urdfFileName, dt=0.001);
+    ctrl = create_balance_controller(device, None, estimator, torque_ctrl, traj_gen, conf.urdfFileName, dt, ff_locator);
     plug(device.state,                 ctrl.q);    
     ctrl.init(dt, conf.urdfFileName);
     ctrl.active_joints.value = conf.active_joints;
     
     ctrl_manager    = create_ctrl_manager(device, torque_ctrl, pos_ctrl, ctrl, estimator, dt);
-#    plug(device.velocity,       torque_ctrl.jointsVelocities);    
+#    plug(device.jointsVelocities, torque_ctrl.jointsVelocities);    
     plug(device.velocity,       ctrl.v);
-    plug(ctrl.dv_des,           device.control);
+    plug(ctrl.tau_des,          device.control);
     t = 0.0;
     v = mat_zeros(nv);
     dv = mat_zeros(nv);
     x_rf = robot.framePosition(robot.model.getFrameId('RLEG_JOINT5')).translation;
     x_lf = robot.framePosition(robot.model.getFrameId('LLEG_JOINT5')).translation;
+    device.displaySignals()
     for i in range(conf.MAX_TEST_DURATION):
 #        if(norm(dv[6:24]) > 1e-8):
 #            print "ERROR acceleration of blocked axes is not zero:", norm(dv[6:24]);
@@ -132,7 +150,7 @@ def main_new(dt=0.001, delay=0.01):
 
 
 def main(dt=0.001, delay=0.01):
-    np.set_printoptions(precision=2, suppress=True);
+    np.set_printoptions(precision=3, suppress=True);
     COM_DES_1 = (0.012, 0.1, 0.81);
     COM_DES_2 = (0.012, 0.0, 0.81);
     dt = conf.dt;
@@ -270,22 +288,25 @@ def main(dt=0.001, delay=0.01):
             com = np.matrix(ctrl.com.value).T
             v = np.matrix(device.velocity.value).T;
             dv = np.matrix(ctrl.dv_des.value).T;
-            print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T,
-            print "zmp_lf", f_lf[3:5].T/f_lf[2,0],
-            print "zmp_rf", f_rf[3:5].T/f_rf[2,0];
-
-            
+            ctrl.zmp_des_right_foot_local.recompute(i);
+            ctrl.zmp_des_left_foot_local.recompute(i);
+            ctrl.zmp_des.recompute(i);
+            zmp_rf = np.matrix(ctrl.zmp_des_right_foot_local.value).T;
+            zmp_lf = np.matrix(ctrl.zmp_des_left_foot_local.value).T;
+            zmp = np.matrix(ctrl.zmp_des.value).T; 
+            print "t=%.3f dv=%.1f v=%.1f com=" % (t, norm(dv), norm(v)), com.T;
+            print "zmp_lf", np.array([-f_lf[4,0], f_lf[3,0]])/f_lf[2,0], zmp_lf.T;
+            print "zmp_rf", np.array([-f_rf[4,0], f_rf[3,0]])/f_rf[2,0], zmp_rf.T, '\n';
 #            print "Base pos (real)", device.state.value[:3];
-#            
 #            print "Base pos (esti)", ff_locator.base6dFromFoot_encoders.value[:3], '\n';
-
-            print "Base velocity (real)", np.array(device.velocity.value[:6]);
-            print "Base velocity (esti)", np.array(ff_locator.v.value[:6]), '\n';
+#            print "Base velocity (real)", np.array(device.velocity.value[:6]);
+#            print "Base velocity (esti)", np.array(ff_locator.v.value[:6]), '\n';
             
         if(i==2):
             ctrl_manager = ControlManager("ctrl_man");
             ctrl_manager.resetProfiler();
         t += dt;
+        sleep(dt);
     
     return (simulator, ctrl);
 

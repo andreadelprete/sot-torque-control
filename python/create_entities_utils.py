@@ -139,23 +139,28 @@ def create_torque_controller(device, estimator, dt=0.001):
     torque_ctrl.init(dt);
     return torque_ctrl;
    
-def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, com_traj_gen, urdfFileName, dt=0.001):
+
+def create_balance_controller(device, floatingBase, estimator, torque_ctrl, traj_gen, com_traj_gen, urdfFileName, dt=0.001, ff_locator=None):
     ctrl = InverseDynamicsBalanceController("invDynBalCtrl");
 
-    from dynamic_graph.sot.core import Stack_of_vector
-    base6d_encoders = Stack_of_vector('base6d_encoders');
-    plug(floatingBase.soutPos, base6d_encoders.sin1);
-    base6d_encoders.selec1(0,6);
-    plug(device.robotState,    base6d_encoders.sin2);
-    base6d_encoders.selec2(6,36);
-    plug(base6d_encoders.sout,                 ctrl.q);
-
-    v = Stack_of_vector('v');
-    plug(floatingBase.soutVel, v.sin1);
-    v.selec1(0,6);
-    plug(estimator.jointsVelocities,    v.sin2);
-    v.selec2(6,36);
-    plug(v.sout,                            ctrl.v);
+    if(floatingBase!=None):
+        from dynamic_graph.sot.core import Stack_of_vector
+        base6d_encoders = Stack_of_vector('base6d_encoders');
+        plug(floatingBase.soutPos, base6d_encoders.sin1);
+        base6d_encoders.selec1(0,6);
+        plug(device.robotState,    base6d_encoders.sin2);
+        base6d_encoders.selec2(6,36);
+        plug(base6d_encoders.sout,                 ctrl.q);
+    
+        v = Stack_of_vector('v');
+        plug(floatingBase.soutVel, v.sin1);
+        v.selec1(0,6);
+        plug(estimator.jointsVelocities,    v.sin2);
+        v.selec2(6,36);
+        plug(v.sout,                            ctrl.v);
+    else:
+        plug(ff_locator.base6dFromFoot_encoders, ctrl.q);
+        plug(ff_locator.v, ctrl.v);
 
     plug(traj_gen.q,                        ctrl.posture_ref_pos);
     plug(traj_gen.dq,                       ctrl.posture_ref_vel);

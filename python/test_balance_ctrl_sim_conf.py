@@ -4,7 +4,7 @@ import numpy as np
 ''' *********************** USER-PARAMETERS *********************** '''
 
 ''' INITIAL STATE PARAMETERS '''
-MAX_TEST_DURATION           = 3000;
+MAX_TEST_DURATION           = 6000;
 dt                          = 1e-3;
 model_path                  = ["/home/adelpret/devel/sot_hydro/install/share"];
 urdfFileName                = model_path[0] + "/hrp2_14_description/urdf/hrp2_14_reduced.urdf";
@@ -65,7 +65,7 @@ ACCOUNT_FOR_ROTOR_INERTIAS      = True;
 # CONTROLLER GAINS
 kp_posture  = 10.0;   # proportional gain of postural task
 kd_posture  = 2*sqrt(kp_posture);
-kp_pos      = 100.0;   # proportional gain of position controller
+kp_pos      = 0.0;   # proportional gain of position controller
 kd_pos      = 2*sqrt(kp_pos);
 kp_constr   = 100.0;   # constraint proportional feedback gain
 kd_constr   = 2*sqrt(kp_constr);   # constraint derivative feedback gain
